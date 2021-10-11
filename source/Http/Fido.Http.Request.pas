@@ -155,17 +155,17 @@ end;
 
 function THttpRequest.FormParams: IReadOnlyDictionary<string, string>;
 begin
-  Result := FFormParams.AsReadOnlyDictionary;
+  Result := FFormParams.AsReadOnly;
 end;
 
 function THttpRequest.HeaderParams: IReadOnlyDictionary<string, string>;
 begin
-  Result := FHeaderParams.AsReadOnlyDictionary;
+  Result := FHeaderParams.AsReadOnly;
 end;
 
 function THttpRequest.QueryParams: IReadOnlyDictionary<string, string>;
 begin
-  Result := FQueryParams.AsReadOnlyDictionary;
+  Result := FQueryParams.AsReadOnly;
 end;
 
 end.

@@ -63,7 +63,7 @@ end;
 
 class procedure MVVMExampleInitialization.Register(const Container: TContainer; const FireDacDatabaseParams: TStrings);
 begin
-  Container.RegisterType<TFireDacConnections>.DelegateTo(
+  Container.RegisterType<TFireDacConnections>(
     function: TFireDacConnections
     begin
       Result := TFireDacConnections.Create(FireDacDatabaseParams);

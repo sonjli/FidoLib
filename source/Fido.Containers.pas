@@ -48,7 +48,7 @@ class procedure Containers.RegisterVirtualQuery<TRecord, T>(
   const Container: TContainer;
   const StatementExecutorServiceName: string);
 begin
-  Container.RegisterType<T>.DelegateTo(
+  Container.RegisterType<T>(
     function: T
     var
       RInterface: T;
@@ -64,7 +64,7 @@ class procedure Containers.RegisterVirtualStatement<T>(
   const Container: TContainer;
   const StatementExecutorServiceName: string);
 begin
-  Container.RegisterType<T>.DelegateTo(
+  Container.RegisterType<T>(
     function: T
     var
       RInterface: T;
