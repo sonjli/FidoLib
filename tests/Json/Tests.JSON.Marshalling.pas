@@ -243,7 +243,7 @@ begin
 
   List2 := TCollections.CreateList<string>(['1', '2', '3', '4']);
 
-  Assert.AreEqual('["1","2","3","4"]', JSONMarshaller.From<IReadOnlyList<string>>(List2.AsReadOnlyList));
+  Assert.AreEqual('["1","2","3","4"]', JSONMarshaller.From<IReadOnlyList<string>>(List2.AsReadOnly));
 end;
 
 procedure TJSONMarshallingTests.JSONMarshallingFromNullableInt64;
