@@ -1193,6 +1193,7 @@ var
   FloatValue: Extended;
   Mapping: MappingsUtilities.TJSONMarshallingMapping;
   MarshalledValue: Nullable<string>;
+  _FormatSettings: TFormatSettings;
 begin
   Result := nil;
 
@@ -1241,10 +1242,10 @@ begin
       MarshalledValue := JSONMarshaller.FromPrimitive(Value, TypInfo, ConfigurationName);
       if MarshalledValue.HasValue then
       begin
-        FormatSettings := TFormatSettings.Create;
-        FormatSettings.ThousandSeparator := ',';
-        FormatSettings.DecimalSeparator := '.';
-        if not TryStrToFloat(MarshalledValue.Value, FloatValue, FormatSettings) then
+        _FormatSettings := TFormatSettings.Create;
+        _FormatSettings.ThousandSeparator := ',';
+        _FormatSettings.DecimalSeparator := '.';
+        if not TryStrToFloat(MarshalledValue.Value, FloatValue, _FormatSettings) then
           Result := TJSONString.Create(MarshalledValue)
         else
           Result := TJSONUnQuotedString.Create(MarshalledValue);
