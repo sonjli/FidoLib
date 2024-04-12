@@ -1188,6 +1188,9 @@ class function JSONMarshaller.InternalFrom(
   const TypInfo: PTypeInfo;
   const ConfigurationName: string): TJsonValue;
 var
+  Context: TRttiContext;
+  RttiType: TRttiType;
+  FloatValue: Extended;
   Mapping: MappingsUtilities.TJSONMarshallingMapping;
   MarshalledValue: Nullable<string>;
 begin
@@ -1237,7 +1240,15 @@ begin
     tkInt64: begin
       MarshalledValue := JSONMarshaller.FromPrimitive(Value, TypInfo, ConfigurationName);
       if MarshalledValue.HasValue then
-        Result := TJSONUnQuotedString.Create(MarshalledValue);
+      begin
+        FormatSettings := TFormatSettings.Create;
+        FormatSettings.ThousandSeparator := ',';
+        FormatSettings.DecimalSeparator := '.';
+        if not TryStrToFloat(MarshalledValue.Value, FloatValue, FormatSettings) then
+          Result := TJSONString.Create(MarshalledValue)
+        else
+          Result := TJSONUnQuotedString.Create(MarshalledValue);
+      end;
     end;
     tkRecord,
     tkMRecord: begin
