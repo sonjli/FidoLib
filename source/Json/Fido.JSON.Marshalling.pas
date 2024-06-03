@@ -1188,8 +1188,6 @@ class function JSONMarshaller.InternalFrom(
   const TypInfo: PTypeInfo;
   const ConfigurationName: string): TJsonValue;
 var
-  Context: TRttiContext;
-  RttiType: TRttiType;
   FloatValue: Extended;
   Mapping: MappingsUtilities.TJSONMarshallingMapping;
   MarshalledValue: Nullable<string>;

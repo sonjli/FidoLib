@@ -73,7 +73,7 @@ end;
 
 function TFireDacTransactionHandler.DoGetNestingLevel: Integer;
 begin
-  Result := 0;
+  Result := 1;
 end;
 
 procedure TFireDacTransactionHandler.DoResetNestedTransactionRollbackedStatus;
