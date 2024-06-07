@@ -47,6 +47,7 @@ type
     function DoGetNestingLevel: Integer; override;
   public
     constructor Create(FireDacConnections: TFireDacConnections);
+    destructor Destroy; override;
   end;
 
 implementation
@@ -57,6 +58,12 @@ constructor TFireDacTransactionHandler.Create(FireDacConnections: TFireDacConnec
 begin
   inherited Create;
   FFireDacConnections := Utilities.CheckNotNullAndSet(FireDacConnections, 'FireDacConnections');
+end;
+
+destructor TFireDacTransactionHandler.Destroy;
+begin
+
+  inherited;
 end;
 
 procedure TFireDacTransactionHandler.DoCommit;
@@ -73,7 +80,7 @@ end;
 
 function TFireDacTransactionHandler.DoGetNestingLevel: Integer;
 begin
-  Result := 1;
+  Result := Utilities.IfThen(FFireDacConnections.GetCurrent.InTransaction, 1, 0);
 end;
 
 procedure TFireDacTransactionHandler.DoResetNestedTransactionRollbackedStatus;
