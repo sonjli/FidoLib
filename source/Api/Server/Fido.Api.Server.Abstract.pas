@@ -408,7 +408,12 @@ begin
     if MethodResult.IsObject or MethodResult.IsArray then
       ApiResponse.SetBody(ConvertResponseDtoToString(ApiResponse.MimeType, MethodResult))
     else
-      ApiResponse.SetBody(ConvertTValueToString(MethodResult));
+    begin
+      if ApiResponse.MimeType = mtJson then
+        ApiResponse.SetBody(ConvertTValueToString(MethodResult))
+      else
+        ApiResponse.SetBody(MethodResult.ToString);
+    end;
   ApiResponse.SetResponseCode(EndPoint.ResponseCode, EndPoint.ResponseText);
 end;
 
