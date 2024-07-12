@@ -142,7 +142,10 @@ end;
 procedure TBrookHTTPResponseAsIHTTPResponseDecorator.SetStream(const Stream: TStream);
 begin
   if FOwnStream then
+  begin
     FBodyStream.Free;
+    FBodyStream := TStringStream.Create('');
+  end;
   FOwnStream := False;
   FBodyStream.Position := 0;
   FBodyStream.SetSize(Longint(0));
