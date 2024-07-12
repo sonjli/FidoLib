@@ -35,7 +35,8 @@ uses
   Spring,
   Spring.Collections,
 
-  Fido.Http.Types;
+  Fido.Http.Types,
+  REST.Types;
 
 procedure StringsToDictionary(const Strings: TStrings; const Dictionary: IDictionary<string, string>);
 
@@ -69,20 +70,24 @@ var
   MimeTypeIndex: Integer;
 begin
   var Mimetypes: IShared<TStringList> := Shared.Make(TStringList.Create);
-  MimeTypes.Delimiter := ';';
-  MimeTypes.DelimitedText := ContentType;
+  Mimetypes.Delimiter := ';';
+  Mimetypes.DelimitedText := ContentType;
 
   LContentType := '';
-  if MimeTypes.Count > 0 then
-    LContentType := MimeTypes.Strings[0];
+  if Mimetypes.Count > 0 then
+    LContentType := Mimetypes.Strings[0];
 
   MimeTypeIndex := -1;
-  if LContentType.IsEmpty then
+  if LContentType.IsEmpty or LContentType.Contains(CONTENTTYPE_APPLICATION_OCTET_STREAM) then
     LContentType := DEFAULTMIME;
   for var StringMimeType in SMimeType do
   begin
     Inc(MimeTypeIndex);
-    if LContentType.ToUpper = StringMimeType.ToUpper then
+
+    if TArray.Contains<string>(LContentType.ToUpper.Split([',']), StringMimeType.ToUpper) then
+      Break;
+
+    if LContentType.ToUpper.Contains('IMAGE/') and StringMimeType.ToUpper.Equals(SMimeType[mtImage].ToUpper) then
       Break;
   end;
   Result := TMimeType(MimeTypeIndex);
@@ -115,7 +120,7 @@ function ParseIOHandlerInputBuffer(const IOHandler: TIdIOHandler): string;
 var
   Bytes: TArray<Byte>;
 begin
-  Result :=  '';
+  Result := '';
   if IOHandler.InputBufferIsEmpty then
     Exit;
   IOHandler.InputBuffer.ExtractToBytes(TIdBytes(Bytes));
@@ -163,3 +168,4 @@ begin
 end;
 
 end.
+

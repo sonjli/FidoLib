@@ -37,7 +37,9 @@ uses
   Fido.Http.RequestInfo.Intf,
   Fido.Http.ResponseInfo.Intf,
   Fido.Http.Response.Intf,
-  Fido.DesignPatterns.Adapter.TIdHTTPRequestInfoAsIHTTPRequestInfo;
+  Fido.DesignPatterns.Adapter.TIdHTTPRequestInfoAsIHTTPRequestInfo,
+  Fido.Http.Utils,
+  IdGlobalProtocols;
 
 type
   THttpResponse = class(TInterfacedObject, IHttpResponse)
@@ -58,7 +60,7 @@ type
       const RequestInfo: IHTTPRequestInfo;
       const ResponseInfo: IHTTPResponseInfo);
 
-    procedure SetResponseCode(const ResponseCode: Integer;const ResponseText: string = '');
+    procedure SetResponseCode(const ResponseCode: Integer; const ResponseText: string = '');
     function Body: string;
     procedure SetBody(const Body: string);
     procedure SetStream(const Stream: TStream);
@@ -115,13 +117,7 @@ constructor THttpResponse.Create(
   const RequestInfo: IHTTPRequestInfo;
   const ResponseInfo: IHTTPResponseInfo);
 var
-  TempBodyParams: IShared<TStringList>;
-  Accepts: IShared<TStringList>;
-  MimeLine: IShared<TStringList>;
-  MimeTypeIndex: Integer;
-  StringMimeType: string;
-  I: Integer;
-  Found: Boolean;
+  _ContentType: string;
 begin
   FRequestInfo := Utilities.CheckNotNullAndSet(RequestInfo, 'RequestInfo');
   FResponseInfo := Utilities.CheckNotNullAndSet(ResponseInfo, 'ResponseInfo');
@@ -130,35 +126,14 @@ begin
 
   FHeaderParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
 
-  TempBodyParams := Shared.Make(TStringList.Create);
+  if RequestInfo.URI.Equals('/') or RequestInfo.URI.Equals('') or RequestInfo.Accept.Contains('*/*') then
+    _ContentType := RequestInfo.Accept
+  else
+    _ContentType := RequestInfo.ContentType;
+  if _ContentType.IsEmpty then
+    _ContentType := GetMIMETypeFromFile(RequestInfo.URI);
 
-  Accepts := Shared.Make(TStringList.Create);
-  Accepts.Delimiter := ',';
-  Accepts.DelimitedText := RequestInfo.Accept;
-
-  Found := False;
-  FMimeType := mtDefault;
-  for I := 0 to Accepts.Count - 1 do
-  begin
-    MimeLine := Shared.Make(TStringList.Create);
-    MimeLine.Delimiter := ';';
-    MimeLine.DelimitedText := Accepts[I];
-
-    MimeTypeIndex := -1;
-    for StringMimeType in SMimeType do
-    begin
-      Inc(MimeTypeIndex);
-      if Trim(MimeLine[0].ToUpper) = StringMimeType.ToUpper then
-      begin
-        Found := True;
-        FMimeType := TMimeType(MimeTypeIndex);
-        Break;
-      end;
-    end;
-
-    if Found then
-      Break
-  end;
+  FMimeType := ContentTypeToMimeType(_ContentType);
 
   StringsToDictionary(RequestInfo.RawHeaders, FHeaderParams);
 
@@ -195,3 +170,4 @@ begin
 end;
 
 end.
+

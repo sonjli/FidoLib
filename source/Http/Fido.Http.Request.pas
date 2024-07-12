@@ -35,7 +35,9 @@ uses
   Fido.Http.Types,
   Fido.Http.Utils,
   Fido.Http.RequestInfo.Intf,
-  Fido.Http.Request.Intf;
+  Fido.Http.Request.Intf,
+  IdGlobalProtocols,
+  IOUtils;
 
 type
   THttpRequest = class(TInterfacedObject, IHttpRequest)
@@ -70,6 +72,7 @@ end;
 
 constructor THttpRequest.Create(const RequestInfo: IHttpRequestInfo);
 var
+  _ContentType: string;
   TempBodyParams: IShared<TStringList>;
 begin
   Guard.CheckNotNull(RequestInfo, 'RequestInfo');
@@ -80,7 +83,8 @@ begin
   FQueryParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
   FHeaderParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
 
-  FMimeType := ContentTypeToMimeType(RequestInfo.ContentType.ToUpper);
+  _ContentType := RequestInfo.Accept.Trim;
+  FMimeType := ContentTypeToMimeType(_ContentType.ToUpper);
 
   TempBodyParams := Shared.Make(TStringList.Create);
 
