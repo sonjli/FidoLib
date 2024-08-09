@@ -40,8 +40,11 @@ type
     procedure SetBody(const Body: string);
     procedure SetStream(const Stream: TStream);
     function HeaderParams: IDictionary<string, string>;
+    function CookieParams: IDictionary<string, string>;
     function MimeType: TMimeType;
     procedure SetMimeType(const MimeType: TMimeType);
+    procedure SetRedirect(const Active: Boolean);
+    procedure SetRedirectPath(const PathToRedirect: string);
   end;
 
 implementation

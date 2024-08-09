@@ -46,6 +46,7 @@ type
     FFormParams: IDictionary<string, string>;
     FQueryParams: IDictionary<string, string>;
     FHeaders: IDictionary<string, string>;
+    FCookies: IDictionary<string, string>;
 
     procedure BrookMapToDictionary(const Map: TBrookStringMap; const Dictionary: IDictionary<string, string>);
   public
@@ -56,6 +57,7 @@ type
     function Body: string;
     function FormParams: IDictionary<string, string>;
     function HeaderParams: IDictionary<string, string>;
+    function CookieParams: IDictionary<string, string>;
     function QueryParams: IDictionary<string, string>;
     function MimeType: TMimeType;
   end;
@@ -80,6 +82,11 @@ begin
     end;
 end;
 
+function TBrookHTTPRequestAsIHTTPRequestDecorator.CookieParams: IDictionary<string, string>;
+begin
+  Result := FCookies;
+end;
+
 constructor TBrookHTTPRequestAsIHTTPRequestDecorator.Create(const Request: TBrookHTTPRequest);
 begin
   inherited Create;
@@ -89,10 +96,12 @@ begin
   FFormParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
   FQueryParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
   FHeaders := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
+  FCookies := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
 
   BrookMapToDictionary(FRequest.Fields, FFormParams);
   BrookMapToDictionary(FRequest.Params, FQueryParams);
   BrookMapToDictionary(FRequest.Headers, FHeaders);
+  BrookMapToDictionary(FRequest.Cookies, FCookies);
 end;
 
 function TBrookHTTPRequestAsIHTTPRequestDecorator.FormParams: IDictionary<string, string>;

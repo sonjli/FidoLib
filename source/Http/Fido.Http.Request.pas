@@ -47,6 +47,7 @@ type
     FQueryParams: IDictionary<string, string>;
     FHeaderParams: IDictionary<string, string>;
     FMimeType: TMimeType;
+    FCookieParams: IDictionary<string, string>;
   public
     constructor Create(const RequestInfo: IHttpRequestInfo);
 
@@ -55,6 +56,7 @@ type
     function Body: string;
     function FormParams: IDictionary<string, string>;
     function HeaderParams: IDictionary<string, string>;
+    function CookieParams: IDictionary<string, string>;
     function QueryParams: IDictionary<string, string>;
     function MimeType: TMimeType;
   end;
@@ -68,6 +70,11 @@ begin
   Result := FURI;
 end;
 
+function THttpRequest.CookieParams: IDictionary<string, string>;
+begin
+  Result := FCookieParams;
+end;
+
 constructor THttpRequest.Create(const RequestInfo: IHttpRequestInfo);
 var
   TempBodyParams: IShared<TStringList>;
@@ -79,6 +86,7 @@ begin
   FFormParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
   FQueryParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
   FHeaderParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
+  FCookieParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
 
   FMimeType := ContentTypeToMimeType(RequestInfo.ContentType.ToUpper);
 
@@ -94,6 +102,7 @@ begin
   StringsToDictionary(RequestInfo.FormParams, FFormParams);
   StringsToDictionary(RequestInfo.QueryParams, FQueryParams);
   StringsToDictionary(RequestInfo.RawHeaders, FHeaderParams);
+  StringsToDictionary(RequestInfo.Cookies, FCookieParams);
 
   FUri := RequestInfo.URI;
 

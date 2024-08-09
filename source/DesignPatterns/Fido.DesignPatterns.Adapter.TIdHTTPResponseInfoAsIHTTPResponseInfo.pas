@@ -66,6 +66,7 @@ type
     procedure SetResponseText(const Text: string);
     procedure SetContentText(const Text: string);
     procedure SetCustomHeaders(const Headers: IDictionary<string, string>);
+    procedure SetCustomCookies(const Cookies: IDictionary<string, string>);
     function RawHeaders: TStrings;
     procedure WriteBytesToWebSocket(const Buffer: TWSBytes);
     procedure ReadBytesFromWebSocket(var Buffer: TWSBytes; const ByteCount: Integer; const Append: Boolean = True);
@@ -161,6 +162,22 @@ procedure TIdHTTPResponseInfoAsIHTTPResponseInfoDecorator.SetContentType(
   const ContentType: string);
 begin
   FResponseInfo.ContentType := ContentType;
+end;
+
+procedure TIdHTTPResponseInfoAsIHTTPResponseInfoDecorator.SetCustomCookies(
+    const Cookies: IDictionary<string, string>);
+begin
+  FResponseInfo.Cookies.Clear;
+
+  with Cookies.Keys.GetEnumerator do
+    while MoveNext do
+    begin
+      with FResponseInfo.Cookies.Add do
+      begin
+        CookieName := Current;
+        Value := Cookies.Items[Current];
+      end;
+    end;
 end;
 
 procedure TIdHTTPResponseInfoAsIHTTPResponseInfoDecorator.SetCustomHeaders(

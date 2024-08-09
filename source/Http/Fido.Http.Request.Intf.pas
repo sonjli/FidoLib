@@ -38,6 +38,7 @@ type
     function Body: string;
     function FormParams: IDictionary<string, string>;
     function HeaderParams: IDictionary<string, string>;
+    function CookieParams: IDictionary<string, string>;
     function QueryParams: IDictionary<string, string>;
     function MimeType: TMimeType;
   end;

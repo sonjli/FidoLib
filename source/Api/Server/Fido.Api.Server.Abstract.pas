@@ -323,6 +323,32 @@ begin
 
               ConvertFromStringToTValue('', Item.TypeInfo, Value);
               LParams[ParameterIndex] := Value;
+            end;
+          end;
+          mptRedirect: begin
+            if not ApiRequest.HeaderParams.TryGetValue(ItemName, ParameterValue) then
+            begin
+              if not Item.IsNullable then
+              begin
+                LResult := False;
+                Exit;
+              end;
+
+              ConvertFromStringToTValue('', Item.TypeInfo, Value);
+              LParams[ParameterIndex] := Value;
+            end;
+          end;
+          mptCookie: begin
+            if not ApiRequest.CookieParams.TryGetValue(ItemName, ParameterValue) then
+            begin
+              if not Item.IsNullable then
+              begin
+                LResult := False;
+                Exit;
+              end;
+
+              ConvertFromStringToTValue('', Item.TypeInfo, Value);
+              LParams[ParameterIndex] := Value;
             end
             else
               ConvertFromStringToTValue(ParameterValue, Item.TypeInfo, Value);
@@ -397,10 +423,21 @@ begin
         case Item.&Type of
           mptBody:
             if not (Assigned(Item.ClassType) or Item.IsInterface) then
-              ApiResponse.SetBody(ConvertTValueToString(LParams[ParameterIndex]))
+            begin
+              if ApiResponse.MimeType = mtHtml then
+                ApiResponse.SetBody(LParams[ParameterIndex].AsString)
+              else
+                ApiResponse.SetBody(ConvertTValueToString(LParams[ParameterIndex]))
+            end
             else
               ApiResponse.SetBody(ConvertResponseDtoToString(ApiResponse.MimeType, LParams[ParameterIndex]));
           mptHeader: ApiResponse.HeaderParams[ItemName] := ConvertTValueToString(LParams[ParameterIndex]).DeQuotedString('"');
+          mptCookie: ApiResponse.CookieParams[ItemName] := ConvertTValueToString(LParams[ParameterIndex]).DeQuotedString('"');
+          mptRedirect:
+            begin
+              ApiResponse.SetRedirect(True);
+              ApiResponse.SetRedirectPath(LParams[ParameterIndex].AsString);
+            end;
         end;
       end);
 
@@ -408,7 +445,10 @@ begin
     if MethodResult.IsObject or MethodResult.IsArray then
       ApiResponse.SetBody(ConvertResponseDtoToString(ApiResponse.MimeType, MethodResult))
     else
-      ApiResponse.SetBody(ConvertTValueToString(MethodResult));
+      if ApiResponse.MimeType = mtHtml then
+        ApiResponse.SetBody(MethodResult.AsString)
+      else
+        ApiResponse.SetBody(ConvertTValueToString(MethodResult));
   ApiResponse.SetResponseCode(EndPoint.ResponseCode, EndPoint.ResponseText);
 end;
 
@@ -444,11 +484,20 @@ begin
       Exit;
     end;
 
-    if not TryGetEndPoint(ApiRequest, EndPoint) then
-      raise EApiServer404.Create('Endpoint not found.');
-
     if (ApiResponse.MimeType = mtAll) and (High(EndPoint.Produces)>=0) then
       ApiResponse.SetMimeType(EndPoint.Produces[0]);
+
+    if not TryGetEndPoint(ApiRequest, EndPoint) then
+    begin
+      if ApiResponse.MimeType = mtHtml then
+      begin
+        ApiResponse.SetResponseCode(200, 'OK');
+        Exit;
+      end;
+
+      raise EApiServer404.Create('Endpoint not found.');
+    end;
+
     RttiType := RttiContext.GetType(EndPoint.Instance.AsObject.ClassType);
 
     TCollections.CreateList<TRttiMethod>(RttiType.GetMethods)
@@ -641,11 +690,11 @@ begin
               if Attribute is PathParamAttribute then
               begin
                 ParameterType := mptPath;
-                 ApiParameterName := (Attribute as ParamAttribute).ParamName;
+                ApiParameterName := (Attribute as ParamAttribute).ParamName;
               end
               else if Attribute is FormParamAttribute then
               begin
-                 ParameterType := mptForm;
+                ParameterType := mptForm;
                 ApiParameterName := (Attribute as ParamAttribute).ParamName;
               end
               else if Attribute is BodyParamAttribute then
@@ -656,6 +705,16 @@ begin
               else if Attribute is HeaderParamAttribute then
               begin
                 ParameterType := mptHeader;
+                ApiParameterName := (Attribute as ParamAttribute).ParamName;
+              end
+              else if Attribute is CookieParamAttribute then
+              begin
+                ParameterType := mptCookie;
+                ApiParameterName := (Attribute as ParamAttribute).ParamName;
+              end
+              else if Attribute is RedirectParamAttribute then
+              begin
+                ParameterType := mptRedirect;
                 ApiParameterName := (Attribute as ParamAttribute).ParamName;
               end
               else if Attribute is QueryParamAttribute then

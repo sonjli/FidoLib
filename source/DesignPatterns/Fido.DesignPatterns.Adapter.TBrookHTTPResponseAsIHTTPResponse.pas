@@ -38,7 +38,11 @@ uses
   Fido.Utilities,
   Fido.Http.Types,
   Fido.Http.Utils,
-  Fido.Http.Response.Intf;
+  Fido.Http.Response.Intf,
+  IOUtils,
+  BrookMediaTypes,
+  BrookHTTPCookies,
+  BrookUtility;
 
 type
   TBrookHTTPResponseAsIHTTPResponseDecorator = class(TInterfacedObject, IHttpResponse)
@@ -48,10 +52,17 @@ type
     FBodyStream: TStringStream;
     FOwnStream: Boolean;
     FHeaders: IDictionary<string, string>;
+    FRequest: TBrookHTTPRequest;
+    FMIME: TBrookMIME;
+    FCookies: IDictionary<string, string>;
+    FRedirectActive: Boolean;
+    FRedirectPath: string;
 
     procedure BrookMapToDictionary(const Map: TBrookStringMap; const Dictionary: IDictionary<string, string>);
+    procedure BrookCookiesToDictionary(const Map: TBrookHTTPCookies; const Dictionary: IDictionary<string, string>);
+    procedure Send(const AValue, AContentType: string; AStatus: Word);
   public
-    constructor Create(const Response: TBrookHTTPResponse; const MimeType: TMimeType); reintroduce;
+    constructor Create(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest; const MimeType: TMimeType); reintroduce;
     destructor Destroy; override;
 
     procedure SetResponseCode(const ResponseCode: Integer; const ResponseText: string = '');
@@ -59,8 +70,11 @@ type
     procedure SetBody(const Body: string);
     procedure SetStream(const Stream: TStream);
     function HeaderParams: IDictionary<string, string>;
+    function CookieParams: IDictionary<string, string>;
     function MimeType: TMimeType;
     procedure SetMimeType(const MimeType: TMimeType);
+    procedure SetRedirect(const Active: Boolean);
+    procedure SetRedirectPath(const PathToRedirect: string);
   end;
 
 implementation
@@ -70,6 +84,19 @@ implementation
 function TBrookHTTPResponseAsIHTTPResponseDecorator.Body: string;
 begin
   FBodyStream.ReadData<string>(Result, FBodyStream.Size);
+end;
+
+procedure TBrookHTTPResponseAsIHTTPResponseDecorator.BrookCookiesToDictionary(
+  const Map: TBrookHTTPCookies;
+  const Dictionary: IDictionary<string, string>);
+begin
+  with Map.GetEnumerator do
+    try
+      while MoveNext do
+        Dictionary[GetCurrent.Name] := GetCurrent.Value;
+    finally
+      Free;
+    end;
 end;
 
 procedure TBrookHTTPResponseAsIHTTPResponseDecorator.BrookMapToDictionary(
@@ -85,23 +112,41 @@ begin
     end;
 end;
 
+function TBrookHTTPResponseAsIHTTPResponseDecorator.CookieParams: IDictionary<string, string>;
+begin
+  Result := FCookies;
+end;
+
 constructor TBrookHTTPResponseAsIHTTPResponseDecorator.Create(
   const Response: TBrookHTTPResponse;
+  const Request: TBrookHTTPRequest;
   const MimeType: TMimeType);
 begin
   inherited Create;
 
   FResponse := Utilities.CheckNotNullAndSet<TBrookHTTPResponse>(Response, 'Response');
+  FRequest := Utilities.CheckNotNullAndSet<TBrookHTTPRequest>(Request, 'Request');
   FMimeType := MimeType;
   FBodyStream := TStringStream.Create('');
   FOwnStream := True;
   FHeaders := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
+  FCookies := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
+
+  FRedirectActive := False;
+  FRedirectPath := '';
+
+  FMIME := TBrookMIME.Create(nil);
+  FMIME.FileName := './mime.types';
+  if FMimeType = mtHtml then
+    FMIME.Open;
 
   BrookMapToDictionary(FResponse.Headers, FHeaders);
+  BrookCookiesToDictionary(FResponse.Cookies, FCookies);
 end;
 
 destructor TBrookHTTPResponseAsIHTTPResponseDecorator.Destroy;
 begin
+  FMIME.Free;
   if FOwnStream then
     FBodyStream.Free;
   inherited;
@@ -117,6 +162,14 @@ begin
   Result := FMimeType;
 end;
 
+procedure TBrookHTTPResponseAsIHTTPResponseDecorator.Send(const AValue, AContentType: string; AStatus: Word);
+begin
+  if FRedirectActive then
+    FResponse.SendAndRedirect(AValue, FRedirectPath, AContentType, 301)
+  else
+    FResponse.Send(AValue, AContentType, AStatus);
+end;
+
 procedure TBrookHTTPResponseAsIHTTPResponseDecorator.SetBody(const Body: string);
 begin
   FBodyStream.Position := 0;
@@ -129,14 +182,57 @@ begin
   FMimeType := MimeType;
 end;
 
+procedure TBrookHTTPResponseAsIHTTPResponseDecorator.SetRedirect(const Active: Boolean);
+begin
+  FRedirectActive := Active;
+end;
+
+procedure TBrookHTTPResponseAsIHTTPResponseDecorator.SetRedirectPath(const PathToRedirect: string);
+begin
+  FRedirectPath := PathToRedirect;
+end;
+
 procedure TBrookHTTPResponseAsIHTTPResponseDecorator.SetResponseCode(const ResponseCode: Integer; const ResponseText: string);
+var
+  FileName: string;
+  FileStream: TFileStream;
+  MediaType: string;
+  RelativePath: string;
 begin
   FHeaders.ForEach(procedure(const Item: TPair<string, string>)
     begin
       FResponse.Headers.AddOrSet(Item.Key, Item.Value);
     end);
 
-  FResponse.Send(FBodyStream.DataString, SMimeType[FMimeType], ResponseCode);
+  FCookies.ForEach(procedure(const Item: TPair<string, string>)
+    begin
+      FResponse.SetCookie(Item.Key, Item.Value);
+    end);
+
+  if FMimeType = mtHtml then
+  begin
+    RelativePath := FRequest.Path;
+    if TPath.IsRelativePath(RelativePath) then
+      RelativePath := '.' + FRequest.Path;
+
+    FileName := TPath.GetFullPath(TPath.Combine('./public', RelativePath));
+    if TFile.Exists(FileName) then
+    begin
+      MediaType := FMIME.Types.Find(ExtractFileExt(FileName));
+      FileStream := TFileStream.Create(FileName, fmShareDenyWrite);
+      FResponse.Headers['content-type'] := MediaType;
+      FResponse.SendStream(FileStream, 200);
+    end
+    else
+    begin
+      if FBodyStream.DataString.Trim.Equals('') and not FRedirectActive then
+        Send(Format('{"error": "page %s not found"}', [FRequest.Path]), 'application/json', 404)
+      else
+        Send(FBodyStream.DataString, SMimeType[FMimeType], ResponseCode);
+    end;
+  end
+  else
+    Send(FBodyStream.DataString, SMimeType[FMimeType], ResponseCode);
 end;
 
 procedure TBrookHTTPResponseAsIHTTPResponseDecorator.SetStream(const Stream: TStream);
@@ -150,3 +246,4 @@ begin
 end;
 
 end.
+

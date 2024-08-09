@@ -35,7 +35,8 @@ uses
   Fido.Http.Request.Intf,
   Fido.Http.Response.Intf,
   Fido.Web.Server.intf,
-  Fido.Web.Server.Abstract;
+  Fido.Web.Server.Abstract,
+  Fido.Http.Types;
 
 type
   TResourceWebServer = class(TAbstractWebServer, IWebServer)

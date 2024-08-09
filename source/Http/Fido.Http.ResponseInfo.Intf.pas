@@ -45,6 +45,7 @@ type
     procedure SetResponseText(const Text: string);
     procedure SetContentText(const Text: string);
     procedure SetCustomHeaders(const Headers: IDictionary<string, string>);
+    procedure SetCustomCookies(const Cookies: IDictionary<string, string>);
     function RawHeaders: TStrings;
   end;
 

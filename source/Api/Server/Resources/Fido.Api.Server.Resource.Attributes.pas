@@ -100,6 +100,9 @@ type
   BodyParamAttribute = class(ParamAttribute);
   HeaderParamAttribute = class(ParamAttribute);
   QueryParamAttribute = class(ParamAttribute);
+  CookieParamAttribute = class(ParamAttribute);
+
+  RedirectParamAttribute = class(ParamAttribute);
 
   WebSocketPathAttribute = class(WebAttribute)
   private

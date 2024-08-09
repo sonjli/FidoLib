@@ -34,6 +34,7 @@ type
     function ContentType: string;
     function FormParams: TStrings;
     function QueryParams: TStrings;
+    function Cookies: TStrings;
     function RawHeaders: TStrings;
     function PostStream: TStream;
     function UnparsedParams: string;

@@ -50,7 +50,7 @@ type
   {$M+}
   TBrookApiServerRequestFactory = reference to function(const Request: TBrookHTTPRequest): IHttpRequest;
 
-  TBrookApiServerResponseFactory = reference to function(const Response: TBrookHTTPResponse): IHttpResponse;
+  TBrookApiServerResponseFactory = reference to function(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest): IHttpResponse;
   {$M-}
 
   EBrookApiServer = class(EFidoApiException);
@@ -141,9 +141,9 @@ end;
 
 function TBrookApiServer.GetDefaultApiResponseFactory: TBrookApiServerResponseFactory;
 begin
-  Result := function(const Response: TBrookHTTPResponse): IHttpResponse
+  Result := function(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest): IHttpResponse
     begin
-      Result := TBrookHTTPResponseAsIHTTPResponseDecorator.Create(Response, FResponseMimeType);
+      Result := TBrookHTTPResponseAsIHTTPResponseDecorator.Create(Response, Request, FResponseMimeType);
     end;
 end;
 
@@ -154,7 +154,7 @@ end;
 
 procedure TBrookApiServer.OnCommandError(Sender: TObject; Request: TBrookHTTPRequest; Response: TBrookHTTPResponse; Exception: Exception);
 begin
-  DoFormatExceptionToResponse(Exception, FApiServerResponseFactory(Response));
+  DoFormatExceptionToResponse(Exception, FApiServerResponseFactory(Response, Request));
 end;
 
 procedure TBrookApiServer.OnHTTPCommandEvent(
@@ -166,7 +166,7 @@ var
   ApiResponse: IHttpResponse;
 begin
   ApiRequest := FApiServerRequestFactory(Request);
-  ApiResponse := FApiServerResponseFactory(Response);
+  ApiResponse := FApiServerResponseFactory(Response, Request);
 
   ProcessCommand(ApiRequest, ApiResponse);
 end;

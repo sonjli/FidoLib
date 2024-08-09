@@ -32,7 +32,8 @@ uses
   IdUri,
   IdGlobalProtocols,
 
-  Fido.Http.RequestInfo.Intf;
+  Fido.Http.RequestInfo.Intf,
+  IdCookie;
 
 type
   TIdHTTPRequestInfoAsIHTTPRequestInfoDecorator = class(TInterfacedObject, IHttpRequestInfo)
@@ -42,6 +43,7 @@ type
     FFormParams: TStrings;
     FQueryParams: TStrings;
     FRawHeaders: TStrings;
+    FCookies: TStringList;
 
     procedure ParseParams(const Encoding: IIdTextEncoding; const Params: TStrings; const Value: string);
     function GetEncoding: IIdTextEncoding;
@@ -53,6 +55,7 @@ type
     function FormParams: TStrings;
     function QueryParams: TStrings;
     function RawHeaders: TStrings;
+    function Cookies: TStrings;
     function PostStream: TStream;
     function UnparsedParams: string;
     function URI: string;
@@ -79,6 +82,23 @@ begin
   Result := FRequestInfo.ContentType;
 end;
 
+function TIdHTTPRequestInfoAsIHTTPRequestInfoDecorator.Cookies: TStrings;
+begin
+  if Assigned(FCookies) then
+    Exit(FCookies);
+
+  FCookies := TStringList.Create;
+  FCookies.BeginUpdate;
+
+  for var Cookie in FRequestInfo.Cookies do
+  begin
+    FCookies.Values[(Cookie as TIdCookie).CookieName] := (Cookie as TIdCookie).Value;
+  end;
+
+  FCookies.EndUpdate;
+  Result := FCookies;
+end;
+
 constructor TIdHTTPRequestInfoAsIHTTPRequestInfoDecorator.Create(const RequestInfo: TIdHTTPRequestInfo);
 begin
   inherited Create;
@@ -90,6 +110,7 @@ begin
   FFormParams.Free;
   FQueryParams.Free;
   FRawHeaders.Free;
+  FCookies.Free;
   inherited;
 end;
 

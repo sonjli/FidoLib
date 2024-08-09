@@ -47,8 +47,11 @@ type
     FResponseCode: Integer;
     FBody: string;
     FHeaderParams: IDictionary<string, string>;
+    FCookieParams: IDictionary<string, string>;
     FMimeType: TMimeType;
     FResponseText: string;
+    FRedirectActive: Boolean;
+    FRedirectPath: string;
 
     procedure StringsToDictionary(const Strings: TStrings; const Dictionary: IDictionary<string, string>);
 
@@ -63,8 +66,11 @@ type
     procedure SetBody(const Body: string);
     procedure SetStream(const Stream: TStream);
     function HeaderParams: IDictionary<string, string>;
+    function CookieParams: IDictionary<string, string>;
     function MimeType: TMimeType;
     procedure SetMimeType(const MimeType: TMimeType);
+    procedure SetRedirect(const Active: Boolean);
+    procedure  SetRedirectPath(const PathToRedirect: string);
   end;
 
 implementation
@@ -80,6 +86,16 @@ procedure THttpResponse.SetMimeType(const MimeType: TMimeType);
 begin
   FMimeType := MimeType;
   FResponseInfo.SetContentType(SMimeType[MimeType]);
+end;
+
+procedure THttpResponse.SetRedirect(const Active: Boolean);
+begin
+  FRedirectActive := Active;
+end;
+
+procedure THttpResponse.SetRedirectPath(const PathToRedirect: string);
+begin
+  FRedirectPath := PathToRedirect;
 end;
 
 procedure THttpResponse.SetResponseCode(
@@ -111,6 +127,11 @@ begin
     Dictionary[Strings.Names[I]] := Strings.ValueFromIndex[I];
 end;
 
+function THttpResponse.CookieParams: IDictionary<string, string>;
+begin
+  Result := FCookieParams;
+end;
+
 constructor THttpResponse.Create(
   const RequestInfo: IHTTPRequestInfo;
   const ResponseInfo: IHTTPResponseInfo);
@@ -129,12 +150,16 @@ begin
   inherited Create;
 
   FHeaderParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
+  FCookieParams := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
 
   TempBodyParams := Shared.Make(TStringList.Create);
 
   Accepts := Shared.Make(TStringList.Create);
   Accepts.Delimiter := ',';
   Accepts.DelimitedText := RequestInfo.Accept;
+
+  FRedirectActive := False;
+  FRedirectPath := '';
 
   Found := False;
   FMimeType := mtDefault;
@@ -177,6 +202,7 @@ begin
   FResponseInfo.SetContentText(Body);
 
   FResponseInfo.SetCustomHeaders(FHeaderParams);
+  FResponseInfo.SetCustomCookies(FCookieParams);
 end;
 
 function THttpResponse.Body: string;

@@ -38,7 +38,7 @@ uses
 type
   THttpMethod = (rmUnknown, rmGET, rmPOST, rmPUT, rmPATCH, rmDELETE, rmCOPY, rmHEAD, rmOPTIONS, rmLINK, rmUNLINK, rmPURGE, rmLOCK, rmUNLOCK, rmPROPFIND, rmVIEW);
 
-  TMethodParameterType = (mptUnknown, mptPath, mptForm, mptBody, mptHeader, mptQuery);
+  TMethodParameterType = (mptUnknown, mptPath, mptForm, mptBody, mptHeader, mptQuery, mptCookie, mptRedirect);
 
   TMimeType = (mtDefault, mtJson, mtHtml, mtImage, mtAll, mtUnknown);
 
