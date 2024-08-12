@@ -61,6 +61,7 @@ type
     FApiServerRequestFactory: TBrookApiServerRequestFactory;
     FApiServerResponseFactory: TBrookApiServerResponseFactory;
     FResponseMimeType: TMimeType;
+    FContentFolder: string;
   protected
     function GetDefaultApiRequestFactory: TBrookApiServerRequestFactory;
     function GetDefaultApiResponseFactory: TBrookApiServerResponseFactory;
@@ -68,6 +69,7 @@ type
     procedure OnCommandError(Sender: TObject; Request: TBrookHTTPRequest; Response: TBrookHTTPResponse; Exception: Exception);
   public
     constructor Create(const Port: Word; const MaxConnections: Integer; const Threaded: Boolean; const ThreadPoolSize: Cardinal; const ResponseMimeType: TMimeType; const SSLCertData: TSSLCertData;
+      const ContentFolder: string = './public';
       const ApiRequestFactory: TBrookApiServerRequestFactory = nil; const ApiResponseFactory: TBrookApiServerResponseFactory = nil);
     destructor Destroy; override;
 
@@ -86,7 +88,7 @@ constructor TBrookApiServer.Create(
   const ThreadPoolSize: Cardinal;
   const ResponseMimeType: TMimeType;
   const SSLCertData: TSSLCertData;
-
+  const ContentFolder: string;
   const ApiRequestFactory: TBrookApiServerRequestFactory;
   const ApiResponseFactory: TBrookApiServerResponseFactory);
 var
@@ -103,6 +105,7 @@ begin
 
   UseSSL := SSLCertData.IsValid;
   FResponseMimeType := ResponseMimeType;
+  FContentFolder := ContentFolder;
 
   FHttpServer := TBrookHTTPServer.Create(nil);
   FHttpServer.ConnectionLimit := MaxConnections;
@@ -143,7 +146,7 @@ function TBrookApiServer.GetDefaultApiResponseFactory: TBrookApiServerResponseFa
 begin
   Result := function(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest): IHttpResponse
     begin
-      Result := TBrookHTTPResponseAsIHTTPResponseDecorator.Create(Response, Request, FResponseMimeType);
+      Result := TBrookHTTPResponseAsIHTTPResponseDecorator.Create(Response, Request, FResponseMimeType, FContentFolder);
     end;
 end;
 

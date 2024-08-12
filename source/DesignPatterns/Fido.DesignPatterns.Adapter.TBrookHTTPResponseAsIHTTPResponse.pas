@@ -47,6 +47,8 @@ uses
 
 type
   TBrookHTTPResponseAsIHTTPResponseDecorator = class(TInterfacedObject, IHttpResponse)
+  private const
+    MimeTypeArchive = './mime.types';
   private
     FResponse: TBrookHTTPResponse;
     FMimeType: TMimeType;
@@ -58,11 +60,12 @@ type
     FCookies: IDictionary<string, string>;
     FRedirectActive: Boolean;
     FRedirectPath: string;
+    FContentFolder: string;
 
     procedure BrookMapToDictionary(const Map: TBrookStringMap; const Dictionary: IDictionary<string, string>);
     procedure Send(const AValue, AContentType: string; AStatus: Word);
   public
-    constructor Create(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest; const MimeType: TMimeType); reintroduce;
+    constructor Create(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest; const MimeType: TMimeType; const ContentFolder: string); reintroduce;
     destructor Destroy; override;
 
     procedure SetResponseCode(const ResponseCode: Integer; const ResponseText: string = '');
@@ -114,7 +117,8 @@ end;
 constructor TBrookHTTPResponseAsIHTTPResponseDecorator.Create(
   const Response: TBrookHTTPResponse;
   const Request: TBrookHTTPRequest;
-  const MimeType: TMimeType);
+  const MimeType: TMimeType;
+  const ContentFolder: string);
 begin
   inherited Create;
 
@@ -125,12 +129,13 @@ begin
   FOwnStream := True;
   FHeaders := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
   FCookies := TCollections.CreateDictionary<string, string>(TIStringComparer.Ordinal);
+  FContentFolder := ContentFolder;
 
   FRedirectActive := False;
   FRedirectPath := '';
 
   FMIME := TBrookMIME.Create(nil);
-  FMIME.FileName := './mime.types';
+  FMIME.FileName := TPath.GetFullPath(TPath.Combine(FContentFolder, MimeTypeArchive));
   if FMimeType = mtHtml then
     FMIME.Open;
 
@@ -249,7 +254,7 @@ begin
     if TPath.IsRelativePath(RelativePath) then
       RelativePath := '.' + FRequest.Path;
 
-    FileName := TPath.GetFullPath(TPath.Combine('./public', RelativePath));
+    FileName := TPath.GetFullPath(TPath.Combine(FContentFolder, RelativePath));
     if TFile.Exists(FileName) then
     begin
       MediaType := FMIME.Types.Find(ExtractFileExt(FileName));
