@@ -29,6 +29,7 @@ uses
   System.SysUtils,
   System.Generics.Defaults,
 
+  Spring,
   Spring.Collections,
 
   BrookHTTPRequest,
@@ -42,7 +43,7 @@ uses
   IOUtils,
   BrookMediaTypes,
   BrookHTTPCookies,
-  BrookUtility;
+  BrookUtility, System.DateUtils, System.StrUtils;
 
 type
   TBrookHTTPResponseAsIHTTPResponseDecorator = class(TInterfacedObject, IHttpResponse)
@@ -59,7 +60,6 @@ type
     FRedirectPath: string;
 
     procedure BrookMapToDictionary(const Map: TBrookStringMap; const Dictionary: IDictionary<string, string>);
-    procedure BrookCookiesToDictionary(const Map: TBrookHTTPCookies; const Dictionary: IDictionary<string, string>);
     procedure Send(const AValue, AContentType: string; AStatus: Word);
   public
     constructor Create(const Response: TBrookHTTPResponse; const Request: TBrookHTTPRequest; const MimeType: TMimeType); reintroduce;
@@ -86,27 +86,21 @@ begin
   FBodyStream.ReadData<string>(Result, FBodyStream.Size);
 end;
 
-procedure TBrookHTTPResponseAsIHTTPResponseDecorator.BrookCookiesToDictionary(
-  const Map: TBrookHTTPCookies;
-  const Dictionary: IDictionary<string, string>);
-begin
-  with Map.GetEnumerator do
-    try
-      while MoveNext do
-        Dictionary[GetCurrent.Name] := GetCurrent.Value;
-    finally
-      Free;
-    end;
-end;
-
 procedure TBrookHTTPResponseAsIHTTPResponseDecorator.BrookMapToDictionary(
   const Map: TBrookStringMap;
   const Dictionary: IDictionary<string, string>);
+var
+  _Key: string;
+  _Value: string;
 begin
   with Map.GetEnumerator do
     try
       while MoveNext do
+      begin
+        _Key := GetCurrent.Name;
+        _Value := GetCurrent.Value;
         Dictionary[GetCurrent.Name] := GetCurrent.Value;
+      end;
     finally
       Free;
     end;
@@ -141,7 +135,6 @@ begin
     FMIME.Open;
 
   BrookMapToDictionary(FResponse.Headers, FHeaders);
-  BrookCookiesToDictionary(FResponse.Cookies, FCookies);
 end;
 
 destructor TBrookHTTPResponseAsIHTTPResponseDecorator.Destroy;
@@ -198,16 +191,57 @@ var
   FileStream: TFileStream;
   MediaType: string;
   RelativePath: string;
+  CookieParams: IShared<TStringList>;
+  ExpiresValue: TDateTime;
+  MaxAgeValue: Integer;
 begin
   FHeaders.ForEach(procedure(const Item: TPair<string, string>)
     begin
       FResponse.Headers.AddOrSet(Item.Key, Item.Value);
     end);
 
-  FCookies.ForEach(procedure(const Item: TPair<string, string>)
+  CookieParams := Shared.Make(TStringList.Create);
+  CookieParams.CaseSensitive := False;
+  FCookies
+  .Where(function(const Item: TPair<string, string>): Boolean
+   begin
+     result := FResponse.Cookies.IndexOf(Item.Key) < 0;
+   end
+  )
+  .ForEach(procedure(const Item: TPair<string, string>)
     begin
-      FResponse.SetCookie(Item.Key, Item.Value);
+      CookieParams.Clear;
+      CookieParams.AddStrings(Item.Value.Split([';']));
+      for var i := 0 to CookieParams.Count - 1 do
+        CookieParams[i] := CookieParams[i].Trim;
+
+      with FResponse.Cookies.Add do
+      begin
+        Name := Item.Key;
+        Value := '';
+        if (CookieParams.Count >= 1) then
+          Value := CookieParams[0];
+        Path := Utilities.IfThen<string>(CookieParams.IndexOfName('PATH') >= 0, CookieParams.Values['PATH'].Trim, '/');
+        if CookieParams.IndexOfName('DOMAIN') >= 0 then
+          Domain := CookieParams.Values['DOMAIN'].Trim;
+        HttpOnly := CookieParams.IndexOf('HTTPONLY') >= 0;
+        Secure := CookieParams.IndexOf('SECURE') >= 0;
+        if (CookieParams.IndexOfName('EXPIRES') >= 0) and (TryISO8601ToDate(CookieParams.Values['EXPIRES'].Trim, ExpiresValue)) then
+          Expires := ExpiresValue;
+        if (CookieParams.IndexOfName('MAX-AGE') >= 0) and (TryStrToInt(CookieParams.Values['MAX-AGE'].Trim, MaxAgeValue)) then
+          MaxAge := MaxAgeValue;
+        if CookieParams.IndexOfName('SAMESITE') >= 0 then
+          SameSite := TBrookHTTPCookieSameSite(IndexText(CookieParams.Values['MAX-AGE'].Trim.ToUpper, ['NONE', 'STRICT', 'LAX']))
+        else
+          SameSite := TBrookHTTPCookieSameSite.ssLax;
+      end;
     end);
+
+  if ResponseCode <> 200 then
+  begin
+    Send(FBodyStream.DataString, SMimeType[FMimeType], ResponseCode);
+    Exit;
+  end;
 
   if FMimeType = mtHtml then
   begin

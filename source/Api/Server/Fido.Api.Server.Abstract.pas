@@ -529,6 +529,11 @@ begin
                   raise EFidoApiException.Create('RequestMiddleware ' + Step.Key + ' not found.')
                 else if not PApiepFunc(Step.Value, ApiRequest, ResponseCode, ResponseText) then
                 begin
+                  if not Step.Value.Trim.IsEmpty and Step.Value.Trim.ToUpper.Contains('REDIRECT') then
+                  begin
+                    ApiResponse.SetRedirect(True);
+                    ApiResponse.SetRedirectPath(Step.Value.Split(['='])[1]);
+                  end;
                   ApiResponse.SetResponseCode(ResponseCode, ResponseText);
                   Exit;
                 end;

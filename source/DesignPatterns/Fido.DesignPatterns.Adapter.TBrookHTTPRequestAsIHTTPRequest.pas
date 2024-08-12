@@ -72,11 +72,18 @@ begin
 end;
 
 procedure TBrookHTTPRequestAsIHTTPRequestDecorator.BrookMapToDictionary(const Map: TBrookStringMap; const Dictionary: IDictionary<string, string>);
+var
+  _Key: string;
+  _Value: string;
 begin
   with Map.GetEnumerator do
     try
       while MoveNext do
+      begin
+        _Key := GetCurrent.Name;
+        _Value := GetCurrent.Value;
         Dictionary[GetCurrent.Name] := GetCurrent.Value;
+      end;
     finally
       Free;
     end;
