@@ -40,7 +40,7 @@ type
 
   TMethodParameterType = (mptUnknown, mptPath, mptForm, mptBody, mptHeader, mptQuery, mptCookie, mptRedirect);
 
-  TMimeType = (mtDefault, mtJson, mtHtml, mtImage, mtAll, mtUnknown);
+  TMimeType = (mtDefault, mtJson, mtHtml, mtImage, mtAll, mtForm, mtUnknown);
 
   TEndPointParameter = record
   private
@@ -144,7 +144,7 @@ const
 
   DEFAULTMIME = 'default';
 
-  SMimeType: array[TMimeType] of string = (DEFAULTMIME, CONTENTTYPE_APPLICATION_JSON, CONTENTTYPE_TEXT_HTML, 'image/*', '*/*', '');
+  SMimeType: array[TMimeType] of string = (DEFAULTMIME, CONTENTTYPE_APPLICATION_JSON, CONTENTTYPE_TEXT_HTML, 'image/*', '*/*', 'application/x-www-form-urlencoded', '');
 
 implementation
 
