@@ -33,7 +33,6 @@ uses
   Spring.Container,
 
   Fido.Api.Client.VirtualApi.json,
-  Fido.Jwt.Manager.Intf,
 
   Fido.Containers,
   Fido.Api.Client.Consul.Constants,
