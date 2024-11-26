@@ -125,17 +125,22 @@ begin
     var
       LValue: Context<Void>;
     begin
-      LValue := FRedisClientFactoryFunc().SUBSCRIBE(
-        Key,
-        procedure(key: string; QueueKey: string)
-        begin
-          TryPop(FRedisClientFactoryFunc(), QueueKey, OnNotify);
-        end,
-        function: Boolean
-        begin
-          Result := Assigned(Self) and (not FClosing);
-        end);
-      LValue.Value;
+      try
+        LValue := FRedisClientFactoryFunc().SUBSCRIBE(
+          Key,
+          procedure(key: string; QueueKey: string)
+          begin
+            TryPop(FRedisClientFactoryFunc(), QueueKey, OnNotify);
+          end,
+          function: Boolean
+          begin
+            Result := Assigned(Self) and (not FClosing);
+          end);
+        LValue.Value;
+      except
+        on E: Exception do
+          OnNotify(Key, E.Message);
+      end;
     end);
 end;
 
