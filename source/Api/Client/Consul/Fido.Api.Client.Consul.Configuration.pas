@@ -30,7 +30,10 @@ uses
   Fido.Api.Client.VirtualApi.Configuration.Intf,
   Fido.Api.Client.VirtualApi.Configuration,
 
-  Fido.Api.Client.Consul.Constants;
+  Fido.Api.Client.Consul.Constants,
+  /// Marshaling workaround
+  ///  When marshaling there is an RTTI issue that does not recognize with Context.FindType(...'IKVStoreGetResponseItem')
+  Fido.Api.Client.Consul.KVStore.V1.Intf;
 
 type
   IConsulClientVirtualApiConfiguration = interface(IClientVirtualApiConfiguration)
@@ -43,6 +46,9 @@ type
   TConsulClientVirtualApiConfiguration = class(TClientVirtualApiConfiguration, IConsulClientVirtualApiConfiguration)
   private
     FToken: string;
+    /// Marshaling workaround
+    ///  When marshaling there is an RTTI issue that does not recognize with Context.FindType(...'IKVStoreGetResponseItem')
+    MarshalingWrokaroudnd: IKVStoreGetResponseItem;
   public
     constructor Create(const BaseUrl: string; const Token: string; const Active: Boolean; const LiveEnvironment: Boolean);
 
