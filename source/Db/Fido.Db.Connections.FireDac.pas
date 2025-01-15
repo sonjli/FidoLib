@@ -69,6 +69,7 @@ begin
       Result.Params.Clear;
       Result.Params.AddStrings(FFireDacConnections.GetUpdateableValue);
       Result.LoginPrompt := False;
+      Result.UpdateOptions.LockWait := True;
       Result.FetchOptions.Mode := fmAll;
       with Result.FormatOptions.MapRules.Add do
       begin
