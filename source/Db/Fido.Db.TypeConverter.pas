@@ -200,7 +200,7 @@ begin
         else
           Exit(VarGuidCreate(V.AsType<TGuid>));
       else
-        Exit(V.AsVariant)
+        Exit(V.ToVariant)
     end;
   end
   else

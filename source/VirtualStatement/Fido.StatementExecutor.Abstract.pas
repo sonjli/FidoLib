@@ -54,6 +54,7 @@ type
     procedure AssertTypeIn(const AllowedTypes: TStatementTypes);
     procedure AssertIsQuery(const AndIsOpen: boolean = false);
     function BuildObjectInternal(const StatementType: TStatementType; const SQLData: string): TObject; virtual; abstract;
+    function UpdateObjectInternal(const SQLData: string): TObject; virtual; abstract;
 
     property Statement: TObject read FStatement;
     property StatementType: TStatementType read FStatementType;
@@ -69,6 +70,7 @@ type
     procedure AddParameter(const ParamName: string; const DataType: TFieldType; const ParamType: TParamType = ptInput); virtual;
     procedure SetParameterValue(const ParamName: string; const Value: Variant); virtual; abstract;
     procedure BuildObject(const StatementType: TStatementType; const SQLData: string);
+    procedure UpdateObject(const SQLData: string);
     procedure Prepare; virtual; abstract;
     procedure SetPaging(const PagingLimit: Integer; const PagingOffset: Integer);
     function Open: TDataset;
@@ -188,6 +190,19 @@ begin
   FPagingLimit := PagingLimit;
   FPagingOffset := PagingOffset;
   Prepare;
+end;
+
+procedure TAbstractStatementExecutor.UpdateObject(const SQLData: string);
+begin
+  FRowsAffected := 0;
+  //FStatementType := stNone;
+
+  FStatement := UpdateObjectInternal(SQLData);
+  // FStatementType := StatementType;
+  Assert(IsBuilt);
+
+  if StatementType in stOpenable then
+    AssertIsQuery;
 end;
 
 end.

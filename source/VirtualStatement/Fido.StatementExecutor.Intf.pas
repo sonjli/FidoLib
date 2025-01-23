@@ -43,6 +43,7 @@ type
     procedure SetParameterValue(const ParamName: string; const Value: Variant);
     procedure SetPaging(const PagingLimit: Integer; const PagingOffset: Integer);
     procedure BuildObject(const StatementType: TStatementType; const SQLData: string);
+    procedure UpdateObject(const SQLData: string);
     procedure Prepare;
     function Open: TDataset;
     procedure Execute;

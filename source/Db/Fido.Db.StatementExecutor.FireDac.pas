@@ -47,6 +47,7 @@ type
     function GetParameters: TFDParams;
   protected
     function BuildObjectInternal(const StatementType: TStatementType; const SQLData: string): TObject; override;
+    function UpdateObjectInternal(const SQLData: string): TObject; override;
   public
     constructor Create(FireDacConnections: TFireDacConnections);
 
@@ -195,6 +196,21 @@ begin
         GetParameters.ParamByName(ParamName).AsGUID := StringToGuid(Value);
   else
     GetParameters.ParamByName(ParamName).Value := Value;
+  end;
+end;
+
+function TFireDacStatementExecutor.UpdateObjectInternal(const SQLData: string): TObject;
+begin
+  Result := nil;
+  try
+    TFDQuery(Statement).Close;
+    TFDQuery(Statement).SQL.Clear;
+    TFDQuery(Statement).Params.Clear;
+    TFDQuery(Statement).SQL.Text := SQLData;
+    Result := Statement;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 

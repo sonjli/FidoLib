@@ -266,7 +266,9 @@ var
 begin
   // define statement (assign SQL data, declare parameters) if necessary
   if not GetIsDefined then
-    DefineStatement(Method, Args);
+    DefineStatement(Method, Args)
+  else
+    Executor.UpdateObject(ReplaceSqlInject(GetSQLData, Args));
 
   PagingLimit := -1;
   PagingOffset := -1;
@@ -274,7 +276,8 @@ begin
   FParams.Values.ForEach(procedure(const Descriptor: TParamDescriptor)
     begin
       if (Descriptor.Direction in [ptInput, ptInputOutput]) and
-         not(Descriptor.IsPagingLimit or Descriptor.IsPagingOffset) then
+         not(Descriptor.IsPagingLimit or Descriptor.IsPagingOffset) and
+         Descriptor.SqlInjectTag.Trim.IsEmpty then
         // convert value to variant (stripping Nullable to its base type if necessary)
         Executor.SetParameterValue(Descriptor.MappedName, Descriptor.DataType.GetAsVariant(Args[Descriptor.Index]))
       else if Descriptor.IsPagingLimit then
@@ -283,7 +286,7 @@ begin
         PagingOffset := Args[Descriptor.Index].AsInteger;
     end);
 
-  if (PagingLimit <> 0) then
+  if (PagingLimit > 0) then
     Executor.SetPaging(PagingLimit, PagingOffset);
 
   FDataset := Executor.Open;
