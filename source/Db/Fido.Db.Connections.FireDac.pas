@@ -45,12 +45,12 @@ type
   protected var
     FFireDacConnections: TFidoFireDacConnections;
   private
-    procedure OnAfterDisconnect(Sender: TObject);
   public
     constructor Create(const Parameters: TStrings; const PerXDictionaryFactoryFunc: Func<TDictionaryOwnerships, Func<TFDConnection>, IPerXDictionary<TFDConnection>>);
     destructor Destroy; override;
 
     function GetCurrent: TFDConnection; virtual;
+    procedure ReleaseCurrent;
   end;
 
 implementation
@@ -71,6 +71,7 @@ begin
       Result.LoginPrompt := False;
       Result.UpdateOptions.LockWait := True;
       Result.FetchOptions.Mode := fmAll;
+      Result.ResourceOptions.SilentMode := True;
       with Result.FormatOptions.MapRules.Add do
       begin
         SourceDataType := dtByteString;
@@ -78,7 +79,7 @@ begin
         SizeMax := 16;
         TargetDataType := dtGUID;
       end;
-      Result.AfterDisconnect := OnAfterDisconnect;
+      // Result.AfterDisconnect := OnAfterDisconnect;
     end,
     procedure(const Connection: TFDConnection; const Params: TStrings)
     begin
@@ -101,8 +102,13 @@ begin
     Result.Open;
 end;
 
-procedure TFireDacConnections.OnAfterDisconnect(Sender: TObject);
+procedure TFireDacConnections.ReleaseCurrent;
+var
+  Conn: TFDConnection;
 begin
+  Conn := FFireDacConnections.GetCurrent;
+  if Conn.Connected then
+    Conn.Close;
   FFireDacConnections.ReleaseCurrent;
 end;
 
