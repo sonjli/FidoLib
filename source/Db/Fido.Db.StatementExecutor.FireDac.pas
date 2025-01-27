@@ -37,11 +37,14 @@ uses
   Fido.VirtualStatement.Intf,
   Fido.VirtualStatement.Attributes,
   Fido.StatementExecutor.Intf,
-  Fido.StatementExecutor.Abstract;
+  Fido.StatementExecutor.Abstract,
+  Classes,
+  FireDAC.Stan.Intf;
 
 type
   TFireDacStatementExecutor = class (TAbstractStatementExecutor, IStatementExecutor)
   private
+    FExecutionCounter: Integer;
     FFireDacConnections: TFireDacConnections;
 
     function GetParameters: TFDParams;
@@ -50,7 +53,6 @@ type
     function UpdateObjectInternal(const SQLData: string): TObject; override;
   public
     constructor Create(FireDacConnections: TFireDacConnections);
-
     function GetParameterValue(const ParamName: string): Variant; override;
     procedure AddParameter(const ParamName: string; const DataType: TFieldType; const ParamType: TParamType = ptInput); override;
     procedure SetParameterValue(const ParamName: string; const Value: Variant); override;
@@ -132,6 +134,7 @@ end;
 procedure TFireDacStatementExecutor.Execute;
 begin
   inherited;
+  FExecutionCounter := FExecutionCounter + 1;
   case StatementType of
     stStoredProc:
       TFDStoredProc(Statement).ExecProc;
@@ -199,19 +202,25 @@ begin
   end;
 end;
 
+
 function TFireDacStatementExecutor.UpdateObjectInternal(const SQLData: string): TObject;
+var
+  DummyEvent: TNotifyEvent;
 begin
-  Result := nil;
+  Result := Statement;
+
+  TFDQuery(Statement).Close;
+  DummyEvent := TFDQuery(Statement).Connection.AfterDisconnect;
+  TFDQuery(Statement).Connection.AfterDisconnect := nil;
   try
-    TFDQuery(Statement).Close;
-    TFDQuery(Statement).SQL.Clear;
-    TFDQuery(Statement).Params.Clear;
-    TFDQuery(Statement).SQL.Text := SQLData;
-    Result := Statement;
-  except
-    Result.Free;
-    raise;
+    TFDQuery(Statement).Connection.Connected := False;
+    TFDQuery(Statement).Connection.Connected := True;
+  finally
+    TFDQuery(Statement).Connection.AfterDisconnect := DummyEvent;
   end;
+  TFDQuery(Statement).Params.Clear;
+  TFDQuery(Statement).SQL.Clear;
+  TFDQuery(Statement).SQL.Text := SQLData;
 end;
 
 end.

@@ -89,7 +89,7 @@ type
     procedure RaiseError(const Msg: string; const Args: array of const);
     procedure TestDatasetOpen(const MethodToBeCalled: string);
     procedure SetExecMethod(const Value: TMethodDescriptor);
-    procedure DefineStatement(const Method: TRttiMethod; const Args: TArray<TValue>);
+    procedure DefineStatement(const Method: TRttiMethod;const Args: TArray<TValue>; const Update: Boolean = False);
     procedure ValidateStatement;
     function ReplaceSqlInject(const Sql: string; const Args: TArray<TValue>): string;
 
@@ -241,16 +241,12 @@ end;
 
 procedure TVirtualStatement<T>.DefineStatement(
   const Method: TRttiMethod;
-  const Args: TArray<TValue>);
+  const Args: TArray<TValue>;
+  const Update: Boolean);
 var
   ParamsList: IList<TParamDescriptor>;
-  Param: TParamDescriptor;
-  IsPagingLimit: Boolean;
-  IsPagingOffset: Boolean;
-  SqlInjectTag: string;
-  MappedName: string;
 begin
-  Assert((StatementType in stValid) and not Executor.IsBuilt and Method.Name.Equals(ExecMethod.OriginalName));
+  Assert((StatementType in stValid) and Method.Name.Equals(ExecMethod.OriginalName));
 
   ParamsList := TCollections.CreateList<TParamDescriptor>;
 
@@ -262,6 +258,12 @@ begin
 
     TCollections.CreateList<TRttiParameter>(Method.GetParameters).ForEach(
       procedure(const Arg: TRttiParameter)
+      var
+        IsPagingLimit: Boolean;
+        IsPagingOffset: Boolean;
+        SqlInjectTag: string;
+        MappedName: string;
+        Param: TParamDescriptor;
       begin
         IsPagingLimit := False;
         IsPagingOffset := False;
@@ -297,7 +299,10 @@ begin
   end;
 
   // tell Executor to construct object
-  Executor.BuildObject(StatementType, ReplaceSqlInject(GetSQLData, Args));
+  if not Update then
+    Executor.BuildObject(StatementType, ReplaceSqlInject(GetSQLData, Args))
+  else
+    Executor.UpdateObject(ReplaceSqlInject(GetSQLData, Args));
 
   // define parameters in executor once Direction and ParameterList is finally established
   ParamsList
@@ -365,10 +370,7 @@ var
   PagingOffset: Integer;
 begin
   // define statement (assign SQL data, declare parameters) if necessary
-  if not GetIsDefined then
-    DefineStatement(Method, Args)
-  else
-    Executor.UpdateObject(ReplaceSqlInject(GetSQLData, Args));
+  DefineStatement(Method, Args, GetIsDefined);
 
   PagingLimit := -1;
   PagingOffset := -1;
@@ -377,8 +379,7 @@ begin
     procedure(const Descriptor: TParamDescriptor)
     begin
       if (Descriptor.Direction in [ptInput, ptInputOutput]) and
-         not(Descriptor.IsPagingLimit or Descriptor.IsPagingOffset) and
-         Descriptor.SqlInjectTag.Trim.IsEmpty then
+         not(Descriptor.IsPagingLimit or Descriptor.IsPagingOffset) then
         // convert value to variant (stripping Nullable to its base type if necessary)
         Executor.SetParameterValue(Descriptor.MappedName, Descriptor.DataType.GetAsVariant(Args[Descriptor.Index]))
       else if Descriptor.IsPagingLimit then

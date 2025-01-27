@@ -88,7 +88,7 @@ type
     procedure RaiseError(const Msg: string; const Args: array of const);
     procedure TestDatasetOpen(const MethodToBeCalled: string);
     procedure SetExecMethod(const Value: TMethodDescriptor);
-    procedure DefineStatement(const Method: TRttiMethod;const Args: TArray<TValue>);
+    procedure DefineStatement(const Method: TRttiMethod;const Args: TArray<TValue>; const Update: Boolean = False);
     procedure ValidateStatement;
     function ReplaceSqlInject(const Sql: string; const Args: TArray<TValue>): string;
   private
@@ -166,10 +166,13 @@ end;
 
 procedure TVirtualQuery<TRecord, T>.DefineStatement(
   const Method: TRttiMethod;
-  const Args: TArray<TValue>);
+  const Args: TArray<TValue>;
+  const Update: Boolean);
 var
   ParamsList: IList<TParamDescriptor>;
 begin
+  Assert(Method.Name.Equals(ExecMethod.OriginalName));
+
   ParamsList := TCollections.CreateList<TParamDescriptor>;
 
   // prepare our list of paramters prior to defining them in executor
@@ -206,7 +209,10 @@ begin
   Delete(FParameterCommaList, 1, 2);
 
   // tell Executor to construct object
-  Executor.BuildObject(stQuery, ReplaceSqlInject(GetSQLData, Args));
+  if not Update then
+    Executor.BuildObject(stQuery, ReplaceSqlInject(GetSQLData, Args))
+  else
+    Executor.UpdateObject(ReplaceSqlInject(GetSQLData, Args));
 
   // define parameters in executor once Direction and ParameterList is finally established
   ParamsList
@@ -265,10 +271,7 @@ var
   PagingOffset: Integer;
 begin
   // define statement (assign SQL data, declare parameters) if necessary
-  if not GetIsDefined then
-    DefineStatement(Method, Args)
-  else
-    Executor.UpdateObject(ReplaceSqlInject(GetSQLData, Args));
+  DefineStatement(Method, Args, GetIsDefined);
 
   PagingLimit := -1;
   PagingOffset := -1;
@@ -276,8 +279,7 @@ begin
   FParams.Values.ForEach(procedure(const Descriptor: TParamDescriptor)
     begin
       if (Descriptor.Direction in [ptInput, ptInputOutput]) and
-         not(Descriptor.IsPagingLimit or Descriptor.IsPagingOffset) and
-         Descriptor.SqlInjectTag.Trim.IsEmpty then
+         not(Descriptor.IsPagingLimit or Descriptor.IsPagingOffset) then
         // convert value to variant (stripping Nullable to its base type if necessary)
         Executor.SetParameterValue(Descriptor.MappedName, Descriptor.DataType.GetAsVariant(Args[Descriptor.Index]))
       else if Descriptor.IsPagingLimit then
