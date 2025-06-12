@@ -452,7 +452,7 @@ begin
     if not TryGetEndPoint(ApiRequest, EndPoint) then
       raise EApiServer404.Create('Endpoint not found.');
 
-    if (ApiResponse.MimeType = mtAll) and (High(EndPoint.Produces)>=0) then
+    if (ApiResponse.MimeType in [mtJson, mtAll, mtDefault]) and (High(EndPoint.Produces)>=0) then
       ApiResponse.SetMimeType(EndPoint.Produces[0]);
     RttiType := RttiContext.GetType(EndPoint.Instance.AsObject.ClassType);
 
