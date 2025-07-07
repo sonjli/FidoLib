@@ -577,6 +577,9 @@ begin
 
   CallApi(Call);
 
+  if Assigned(ActiveConfig) then
+    ActiveConfig.AfterCall(Call);
+
   FLastStatusCode := Call.ResponseCode;
 
   if not Call.IsOk then

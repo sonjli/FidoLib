@@ -41,6 +41,7 @@ type
 
     procedure CallBegins(const Call: TClientVirtualApiCall);
     procedure CallEnded(const Call: TClientVirtualApiCall);
+    procedure AfterCall(const Call: TClientVirtualApiCall);
   end;
 
 implementation

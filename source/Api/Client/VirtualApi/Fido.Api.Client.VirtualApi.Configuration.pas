@@ -49,6 +49,7 @@ type
     // IActiveClientVirtualApiConfiguration
     procedure CallBegins(const Call: TClientVirtualApiCall); virtual;
     procedure CallEnded(const Call: TClientVirtualApiCall); virtual;
+    procedure AfterCall(const Call: TClientVirtualApiCall); virtual;
   end;
 
 implementation
@@ -80,6 +81,7 @@ begin
   Result := FLiveEnvironment;
 end;
 
+
 { TActiveApiVirtualApiConfiguration }
 
 procedure TActiveVirtualApiConfiguration.CallBegins(const Call: TClientVirtualApiCall);
@@ -87,6 +89,10 @@ begin
 end;
 
 procedure TActiveVirtualApiConfiguration.CallEnded(const Call: TClientVirtualApiCall);
+begin
+end;
+
+procedure TActiveVirtualApiConfiguration.AfterCall(const Call: TClientVirtualApiCall);
 begin
 end;
 
