@@ -566,6 +566,7 @@ begin
   ParamNamesToParamNameValues(Arguments, EndPointInfo.QueryParams, pkQuery, Call);
   ParamNamesToParamNameValues(Arguments, EndPointInfo.HeaderParams, pkHeader, Call);
   ParamNamesToParamNameValues(Arguments, EndPointInfo.FormParams, pkForm, Call);
+  ParamNamesToParamNameValues(Arguments, EndPointInfo.FileParams, pkFile, Call);
 
   // Api of data
   Call.Url := FConfiguration.BaseUrl + Path;
