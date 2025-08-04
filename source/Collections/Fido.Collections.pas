@@ -67,12 +67,12 @@ end;
 
 class function TCollections.GetListOfDeepObservable<T>(const Comparer: IComparer<T>): IDeepObservableList<T>;
 begin
-  Result := TDeepObservableList<T>.Create(Comparer);
+  Result := TDeepObservableList<T>.Create(TypeInfo(T), Comparer);
 end;
 
 class function TCollections.GetListOfDeepObservable<T>(const Comparison: TComparison<T>): IDeepObservableList<T>;
 begin
-  Result := TDeepObservableList<T>.Create(TDelegatedComparer<T>.Create(Comparison));
+  Result := TDeepObservableList<T>.Create(TypeInfo(T), TDelegatedComparer<T>.Create(Comparison));
 end;
 
 end.
