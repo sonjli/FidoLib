@@ -69,6 +69,7 @@ type
       FTypeCache: IDictionary<string, TDataTypeDescriptor>;
   strict private
     class procedure AddTypeDescriptor(const BaseType: TBaseType; const IsNullable: boolean; const TypeKind: TTypeKind; const FieldType: TFieldType; const TypeName: string = '');
+    class procedure InitializeTypeCache;
   public
     class constructor Create;
     class function GotDescriptor(const RttiType: TRttiType; out Descriptor: TDataTypeDescriptor): boolean; overload;
@@ -115,6 +116,27 @@ end;
 
 class constructor DataTypeConverter.Create;
 begin
+  InitializeTypeCache;
+end;
+
+class function DataTypeConverter.GetDescriptor(const RttiType: TRttiType): TDataTypeDescriptor;
+begin
+  if not GotDescriptor(RttiType, Result) then
+    raise EFidoUnsupportedTypeError.CreateFmt('Type %s is not supported by Fido Framework', [RttiType.QualifiedName]);
+end;
+
+class function DataTypeConverter.GotDescriptor(
+  const QualifiedTypeName: string;
+  out Descriptor: TDataTypeDescriptor): boolean;
+begin
+  if not Assigned(FTypeCache) then
+    InitializeTypeCache;
+
+  Result := FTypeCache.TryGetValue(QualifiedTypeName.ToUpper, Descriptor);
+end;
+
+class procedure DataTypeConverter.InitializeTypeCache;
+begin
   FTypeCache := TCollections.CreateDictionary<string, TDataTypeDescriptor>([doOwnsValues]);
 
   // RTTI integers  (ignore ShortInt, Smallint etc.)
@@ -159,19 +181,6 @@ begin
 
 
   AddTypeDescriptor(btEnum, false, tkEnumeration, ftInteger);
-end;
-
-class function DataTypeConverter.GetDescriptor(const RttiType: TRttiType): TDataTypeDescriptor;
-begin
-  if not GotDescriptor(RttiType, Result) then
-    raise EFidoUnsupportedTypeError.CreateFmt('Type %s is not supported by Fido Framework', [RttiType.QualifiedName]);
-end;
-
-class function DataTypeConverter.GotDescriptor(
-  const QualifiedTypeName: string;
-  out Descriptor: TDataTypeDescriptor): boolean;
-begin
-  Result := FTypeCache.TryGetValue(QualifiedTypeName.ToUpper, Descriptor);
 end;
 
 class function DataTypeConverter.GotDescriptor(
