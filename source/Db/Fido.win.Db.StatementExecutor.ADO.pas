@@ -92,7 +92,7 @@ begin
   Result := nil;
   try
     case StatementType of
-      stSequence, stQuery, stFunction: // = stOpenable
+      stSequence, stQuery, stFunction, stScalarQuery: // = stOpenable
         begin
           Result := TADODataSet.Create(nil);
           with TADODataSet(Result) do begin
@@ -168,7 +168,7 @@ begin
       TADOStoredProc(Statement).Prepared := true;
     stCommand:
       TADOCommand(Statement).Prepared := true;
-    stQuery, stFunction, stSequence:
+    stQuery, stFunction, stSequence, stScalarQuery:
       TADODataSet(Statement).Prepared := true;
     else
       Assert(false, 'Unimplemented');
