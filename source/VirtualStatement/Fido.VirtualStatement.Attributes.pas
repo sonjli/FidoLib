@@ -46,7 +46,7 @@ const
   // types that will be executed (as opposed to opened)
   stExecutable = [stCommand, stStoredProc];
   // types that can have parameters (all valid except for stSequence)
-  stParametrised = [stFunction, stQuery, stCommand, stStoredProc];
+  stParametrised = [stFunction, stQuery, stCommand, stStoredProc, stScalarQuery];
   // types that require SQL resource name in statment data
   stResourced = [stQuery, stCommand, stScalarQuery];
 

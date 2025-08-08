@@ -147,7 +147,7 @@ begin
       Result := TADOStoredProc(Statement).Parameters;
     stCommand:
       Result := TADOCommand(Statement).Parameters;
-    stQuery, stFunction:
+    stQuery, stFunction, stScalarQuery:
       Result := TADODataSet(Statement).Parameters;
     else
       Result := nil;
