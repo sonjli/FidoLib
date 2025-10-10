@@ -37,19 +37,19 @@ uses
   Fido.VirtualStatement.Intf,
   Fido.VirtualStatement.Attributes,
   Fido.StatementExecutor.Intf,
-  Fido.StatementExecutor.Abstract;
+  Fido.StatementExecutor.Abstract,
+  Classes;
 
 type
   TADOStatementExecutor = class (TAbstractStatementExecutor, IStatementExecutor)
-  private var
-    FAdoConnections: TAdoConnections;
   private
+    FAdoConnections: TAdoConnections;
     function GetParameters: TParameters;
   protected
     function BuildObjectInternal(const StatementType: TStatementType; const SQLData: string): TObject; override;
+    function UpdateObjectInternal(const SQLData: string): TObject; override;
   public
     constructor Create(AdoConnections: TAdoConnections);
-
     function GetParameterValue(const ParamName: string): Variant; override;
     procedure AddParameter(const ParamName: string; const DataType: TFieldType; const ParamType: TParamType = ptInput); override;
     procedure SetParameterValue(const ParamName: string; const Value: Variant); override;
@@ -180,6 +180,26 @@ procedure TADOStatementExecutor.SetParameterValue(
   const Value: Variant);
 begin
   GetParameters.ParamByName(ParamName).Value := Value;
+end;
+
+function TADOStatementExecutor.UpdateObjectInternal(const SQLData: string): TObject;
+var
+  DummyEvent: TNotifyEvent;
+begin
+  Result := Statement;
+
+  TADOQuery(Statement).Close;
+  DummyEvent := TADOQuery(Statement).Connection.AfterDisconnect;
+  TADOQuery(Statement).Connection.AfterDisconnect := nil;
+  try
+    TADOQuery(Statement).Connection.Connected := False;
+    TADOQuery(Statement).Connection.Connected := True;
+  finally
+    TADOQuery(Statement).Connection.AfterDisconnect := DummyEvent;
+  end;
+  TADOQuery(Statement).Parameters.Clear;
+  TADOQuery(Statement).SQL.Clear;
+  TADOQuery(Statement).SQL.Text := SQLData;
 end;
 
 end.
