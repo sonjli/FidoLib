@@ -25,6 +25,9 @@
 interface
 
 uses
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
   System.Rtti,
   Data.DB,
 
@@ -38,15 +41,12 @@ uses
   Fido.VirtualStatement.Attributes,
   Fido.StatementExecutor.Intf,
   Fido.StatementExecutor.Abstract,
-  Classes,
   FireDAC.Stan.Intf;
 
 type
   TFireDacStatementExecutor = class (TAbstractStatementExecutor, IStatementExecutor)
   private
-    FExecutionCounter: Integer;
     FFireDacConnections: TFireDacConnections;
-
     function GetParameters: TFDParams;
   protected
     function BuildObjectInternal(const StatementType: TStatementType; const SQLData: string): TObject; override;
@@ -61,10 +61,6 @@ type
   end;
 
 implementation
-
-uses
-  System.SysUtils,
-  System.Variants;
 
 { TFireDacStatementExecutor }
 
@@ -134,7 +130,6 @@ end;
 procedure TFireDacStatementExecutor.Execute;
 begin
   inherited;
-  FExecutionCounter := FExecutionCounter + 1;
   case StatementType of
     stStoredProc:
       TFDStoredProc(Statement).ExecProc;
