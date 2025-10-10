@@ -188,18 +188,17 @@ var
 begin
   Result := Statement;
 
-  TADOQuery(Statement).Close;
-  DummyEvent := TADOQuery(Statement).Connection.AfterDisconnect;
-  TADOQuery(Statement).Connection.AfterDisconnect := nil;
+  TADODataSet(Statement).Close;
+  DummyEvent := TADODataSet(Statement).Connection.AfterDisconnect;
+  TADODataSet(Statement).Connection.AfterDisconnect := nil;
   try
-    TADOQuery(Statement).Connection.Connected := False;
-    TADOQuery(Statement).Connection.Connected := True;
+    TADODataSet(Statement).Connection.Connected := False;
+    TADODataSet(Statement).Connection.Connected := True;
   finally
-    TADOQuery(Statement).Connection.AfterDisconnect := DummyEvent;
+    TADODataSet(Statement).Connection.AfterDisconnect := DummyEvent;
   end;
-  TADOQuery(Statement).Parameters.Clear;
-  TADOQuery(Statement).SQL.Clear;
-  TADOQuery(Statement).SQL.Text := SQLData;
+  TADODataSet(Statement).Parameters.Clear;
+  TADODataSet(Statement).CommandText := SQLData;
 end;
 
 end.
