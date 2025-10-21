@@ -92,6 +92,8 @@ var
 begin
   // make sure it was closed explicitly
   try
+    if FId = 0 then
+      Exit;
     if not GetIsClosed then
     begin
       // The transaction is misused. The transaction handler will perform a rollback on destroy

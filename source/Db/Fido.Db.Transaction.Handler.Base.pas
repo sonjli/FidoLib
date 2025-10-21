@@ -68,7 +68,7 @@ end;
 destructor TBaseTransactionHandler.Destroy;
 begin
 // this should never happen, but if the Transaction Handler goes out of scope with a transaction still open then we force the rollback
-  while (DoGetNestingLevel > 0) do
+  while (DoGetNestingLevel > 1) do
     DoRollback;
   inherited;
 end;
@@ -147,7 +147,7 @@ const
 begin
   Assert(DoGetNestingLevel >= 0);
 
-  if DoGetNestingLevel = 0 then
+  if DoGetNestingLevel = 1 then
     RaiseError('%s while not in transaction mode (no call expected, got %d',
       [ActionText[Commiting], ID])
   else
