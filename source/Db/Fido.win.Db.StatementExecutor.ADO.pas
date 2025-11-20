@@ -29,11 +29,11 @@ uses
   System.SysUtils,
   System.Variants,
 
-  Data.DB,
-  Data.Win.ADODB,
+  Data.Db,
+  Data.win.ADODB,
 
   Fido.Utilities,
-  Fido.Win.Db.Connections.Ado,
+  Fido.win.Db.Connections.ADO,
   Fido.VirtualStatement.Intf,
   Fido.VirtualStatement.Attributes,
   Fido.StatementExecutor.Intf,
@@ -41,7 +41,7 @@ uses
   Classes;
 
 type
-  TADOStatementExecutor = class (TAbstractStatementExecutor, IStatementExecutor)
+  TADOStatementExecutor = class(TAbstractStatementExecutor, IStatementExecutor)
   private
     FAdoConnections: TAdoConnections;
     function GetParameters: TParameters;
@@ -69,7 +69,7 @@ var
   P: TParameter;
 const
   TypeToDirectionMap: array[TParamType] of TParameterDirection = (
-    pdUnknown, pdInput, pdOutput, pdInputOutput,  pdReturnValue);
+    pdUnknown, pdInput, pdOutput, pdInputOutput, pdReturnValue);
 begin
   inherited;
   P := GetParameters.FindParam(ParamName);
@@ -95,7 +95,8 @@ begin
       stSequence, stQuery, stFunction, stScalarQuery: // = stOpenable
         begin
           Result := TADODataSet.Create(nil);
-          with TADODataSet(Result) do begin
+          with TADODataSet(Result) do
+          begin
             Connection := FAdoConnections.GetCurrent;
             LockType := ltReadOnly; // because all are readonly at the moment
             CommandText := SQLData;
@@ -110,9 +111,10 @@ begin
       stCommand:
         begin
           Result := TADOCommand.Create(nil);
-          with TADOCommand(Result) do begin
+          with TADOCommand(Result) do
+          begin
             Connection := FAdoConnections.GetCurrent;
-            ParamCheck := true;  // CRITICAL!
+            ParamCheck := true; // CRITICAL!
             CommandText := SQLData;
           end;
         end;
@@ -149,8 +151,8 @@ begin
       Result := TADOCommand(Statement).Parameters;
     stQuery, stFunction, stScalarQuery:
       Result := TADODataSet(Statement).Parameters;
-    else
-      Result := nil;
+  else
+    Result := nil;
   end;
 end;
 
@@ -170,8 +172,8 @@ begin
       TADOCommand(Statement).Prepared := true;
     stQuery, stFunction, stSequence, stScalarQuery:
       TADODataSet(Statement).Prepared := true;
-    else
-      Assert(false, 'Unimplemented');
+  else
+    Assert(false, 'Unimplemented');
   end;
 end;
 
@@ -188,17 +190,51 @@ var
 begin
   Result := Statement;
 
-  TADODataSet(Statement).Close;
-  DummyEvent := TADODataSet(Statement).Connection.AfterDisconnect;
-  TADODataSet(Statement).Connection.AfterDisconnect := nil;
-  try
-    TADODataSet(Statement).Connection.Connected := False;
-    TADODataSet(Statement).Connection.Connected := True;
-  finally
-    TADODataSet(Statement).Connection.AfterDisconnect := DummyEvent;
+  case StatementType of
+    stStoredProc:
+      begin
+        DummyEvent := TADOStoredProc(Statement).Connection.AfterDisconnect;
+        TADOStoredProc(Statement).Connection.AfterDisconnect := nil;
+        try
+          TADOStoredProc(Statement).Connection.Connected := false;
+          TADOStoredProc(Statement).Connection.Connected := true;
+        finally
+          TADOStoredProc(Statement).Connection.AfterDisconnect := DummyEvent;
+        end;
+        TADOStoredProc(Statement).Parameters.Clear;
+        TADOStoredProc(Statement).ProcedureName := SQLData;
+      end;
+    stCommand:
+      begin
+        DummyEvent := TADOCommand(Statement).Connection.AfterDisconnect;
+        TADOCommand(Statement).Connection.AfterDisconnect := nil;
+        try
+          TADOCommand(Statement).Connection.Connected := false;
+          TADOCommand(Statement).Connection.Connected := true;
+        finally
+          TADOCommand(Statement).Connection.AfterDisconnect := DummyEvent;
+        end;
+        TADOCommand(Statement).Parameters.Clear;
+        TADOCommand(Statement).CommandText := SQLData;
+      end;
+    stQuery, stFunction, stScalarQuery:
+      begin
+        TADODataSet(Statement).Close;
+        DummyEvent := TADODataSet(Statement).Connection.AfterDisconnect;
+        TADODataSet(Statement).Connection.AfterDisconnect := nil;
+        try
+          TADODataSet(Statement).Connection.Connected := false;
+          TADODataSet(Statement).Connection.Connected := true;
+        finally
+          TADODataSet(Statement).Connection.AfterDisconnect := DummyEvent;
+        end;
+        TADODataSet(Statement).Parameters.Clear;
+        TADODataSet(Statement).CommandText := SQLData;
+      end
+  else
+    raise Exception.Create('Unknown ADO object');
   end;
-  TADODataSet(Statement).Parameters.Clear;
-  TADODataSet(Statement).CommandText := SQLData;
 end;
 
 end.
+
