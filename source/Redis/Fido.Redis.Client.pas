@@ -28,13 +28,10 @@ uses
   System.SysUtils,
   System.Variants,
   Generics.Collections,
-
   Spring,
-
   Redis.Values,
   Redis.Commons,
   Redis.Client,
-
   Fido.Utilities,
   Fido.Functional,
   Fido.Functional.Ifs,
@@ -42,13 +39,24 @@ uses
 
 type
   TFidoRedisClient = class(TInterfacedObject, IFidoRedisClient)
-  private type
-    TSubscribeStruct = record
-      Channel: string;
-      aCallback: TProc<string, string>;
-      aContinueOnTimeoutCallback: TRedisTimeoutCallback;
-      aAfterSubscribe: TProc;
-    end;
+  private
+    type
+      TSubscribeStruct = record
+        Channel: string;
+        aCallback: TProc<string, string>;
+        aContinueOnTimeoutCallback: TRedisTimeoutCallback;
+        aAfterSubscribe: TProc;
+      end;
+      TQueueStruct = record
+        Source: string;
+        Destination: string;
+        Timeout: Integer;
+      end;
+      TExpireStruct = record
+        Key: string;
+        Value: string;
+        ExpireMS: Integer;
+      end;
   private
     FRedisClient: IRedisClient;
     function HasRedisNullableValue(const Value: TRedisNullable<string>): Context<Boolean>;
@@ -59,16 +67,42 @@ type
     function DoPUBLISH(const Params: TArray<string>): Integer;
     function DoRPOP(const Key: string): Nullable<string>;
     function DoSET(const Params: TArray<string>): Boolean;
+    function DoLREM(const Params: TArray<string>): Integer;
+    function DoBRPOPLPUSH(const Struct: TQueueStruct): Nullable<string>;
+    function DoSMEMBERS(const Key: string): TArray<string>;
+    function DoLRANGE(const Key: TArray<TValue>): TArray<string>;
+    function DoSETNXPX(const Struct: TExpireStruct): Context<Boolean>;
+    function DoPEXPIRE(const Params: TArray<string>): Boolean;
   public
     constructor Create(const RedisClient: IRedisClient);
 
-    function DEL(const Key: string; const Timeout: Cardinal = INFINITE): Context<Integer>;
-    function GET(const Key: string; const Timeout: Cardinal = INFINITE): Context<Nullable<string>>;
-    function &SET(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
-    function RPOP(const Key: string; const Timeout: Cardinal = INFINITE): Context<Nullable<string>>;
-    function LPUSH(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Integer>;
-    function PUBLISH(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Integer>;
-    function SUBSCRIBE(const Channel: string; aCallback: TProc<string, string>; aContinueOnTimeoutCallback: TRedisTimeoutCallback = nil; aAfterSubscribe: TProc = nil): Context<Void>;
+    function DEL(const Key: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function GET(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function &SET(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function SETNXPX(
+        const Key, Value: string;
+        const ExpireMS: Integer = 5000;
+        const Timeout: Integer = MAXINT
+    ): Context<Boolean>;
+    function PEXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function RPOP(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function SMEMBERS(const Key: string; const Timeout: Integer = MAXINT): Context<TArray<string>>;
+    function LRANGE(
+        const Key: string;
+        const Start: integer = 0;
+        const Stop: Integer = -1;
+        const Timeout: Integer = MAXINT
+    ): Context<TArray<string>>;
+    function PUBLISH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function SUBSCRIBE(
+        const Channel: string;
+        aCallback: TProc<string, string>;
+        aContinueOnTimeoutCallback: TRedisTimeoutCallback = nil;
+        aAfterSubscribe: TProc = nil
+    ): Context<Void>;
+    function BRPOPLPUSH(const Source, Destination: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
   end;
 
 implementation
@@ -82,6 +116,18 @@ begin
   FRedisClient := Utilities.CheckNotNullAndSet(RedisClient, 'RedisClient');
 end;
 
+function TFidoRedisClient.DoBRPOPLPUSH(const Struct: TQueueStruct): Nullable<string>;
+var
+  Client: IRedisClient;
+  Value: string;
+  ResultValue: Nullable<string>;
+begin
+  Client := FRedisClient;
+  Result := ResultValue;
+  if FRedisClient.BRPOPLPUSH(Struct.Source, Struct.Destination, Value, Struct.Timeout) then
+    Result := Value;
+end;
+
 function TFidoRedisClient.DoDEL(const Key: string): Integer;
 var
   Client: IRedisClient;
@@ -91,9 +137,7 @@ begin
   Result := Client.DEL([Key]);
 end;
 
-function TFidoRedisClient.DEL(
-  const Key: string;
-  const Timeout: Cardinal): Context<Integer>;
+function TFidoRedisClient.DEL(const Key: string; const Timeout: Integer): Context<Integer>;
 begin
   Result := Context<string>.New(Key).MapAsync<Integer>(DoDel, Timeout);
 end;
@@ -103,10 +147,24 @@ var
   LValue: TRedisNullable<string>;
 begin
   LValue := Value;
-  Result := function: Boolean
-    begin
-      Result := LValue.HasValue;
-    end;
+  Result := function: Boolean begin Result := LValue.HasValue; end;
+end;
+
+function TFidoRedisClient.BRPOPLPUSH(
+    const Source, Destination: string;
+    const Timeout: Integer = MAXINT
+): Context<Nullable<string>>;
+var
+  Struct: TQueueStruct;
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Struct.Source := Source;
+  Struct.Destination := Destination;
+  Struct.Timeout := Timeout;
+
+  Result := Context<TQueueStruct>.New(Struct).MapAsync<Nullable<string>>(DoBRPOPLPUSH, Timeout);
 end;
 
 function TFidoRedisClient.ConvertRedisNullable(const Value: TRedisNullable<string>): Nullable<string>;
@@ -123,14 +181,15 @@ begin
   Result := Client.GET(Key);
 end;
 
-function TFidoRedisClient.GET(
-  const Key: string;
-  const Timeout: Cardinal): Context<Nullable<string>>;
+function TFidoRedisClient.GET(const Key: string; const Timeout: Integer): Context<Nullable<string>>;
 var
   NullValue: Nullable<string>;
 begin
-  Result := &If<TRedisNullable<string>>.New(Context<string>.New(Key).MapAsync<TRedisNullable<string>>(DoGET, Timeout)).
-    Map(HasRedisNullableValue).&Then<Nullable<string>>(ConvertRedisNullable, NullValue);
+  Result :=
+      &If<TRedisNullable<string>>
+          .New(Context<string>.New(Key).MapAsync<TRedisNullable<string>>(DoGET, Timeout))
+          .Map(HasRedisNullableValue)
+          .&Then<Nullable<string>>(ConvertRedisNullable, NullValue);
 end;
 
 function TFidoRedisClient.DoLPUSH(const Params: TArray<string>): Integer;
@@ -142,12 +201,59 @@ begin
   Result := Client.LPUSH(Params[0], [Params[1]]);
 end;
 
-function TFidoRedisClient.LPUSH(
-  const Key: string;
-  const Value: string;
-  const Timeout: Cardinal): Context<Integer>;
+function TFidoRedisClient.DoLRANGE(const Key: TArray<TValue>): TArray<string>;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  result := [];
+
+  if not Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).HasValue then
+    Exit;
+
+  result := Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).ToArray;
+end;
+
+function TFidoRedisClient.DoLREM(const Params: TArray<string>): Integer;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.LREM(Params[0], 1, Params[1]);
+end;
+
+function TFidoRedisClient.LPUSH(const Key: string; const Value: string; const Timeout: Integer): Context<Integer>;
 begin
   Result := Context<TArray<string>>.New([Key, Value]).MapAsync<Integer>(DoLPUSH, Timeout);
+end;
+
+function TFidoRedisClient.LRANGE(
+    const Key: string;
+    const Start: integer = 0;
+    const Stop: Integer = -1;
+    const Timeout: Integer = MAXINT
+): Context<TArray<string>>;
+begin
+  Result :=
+      Context<TArray<TValue>>
+          .New([TValue.From<string>(Key), TValue.From<integer>(Start), TValue.From<integer>(Stop)])
+          .MapAsync<TArray<string>>(DoLRANGE, Timeout);
+end;
+
+function TFidoRedisClient.LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
+begin
+  Result := Context<TArray<string>>.New([Key, Item]).MapAsync<Integer>(DoLREM, Timeout);
+end;
+
+function TFidoRedisClient.DoPEXPIRE(const Params: TArray<string>): Boolean;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.PEXPIRE(Params[0], Params[1].ToInteger);
 end;
 
 function TFidoRedisClient.DoPUBLISH(const Params: TArray<string>): Integer;
@@ -155,13 +261,16 @@ var
   Client: IRedisClient;
 begin
   Client := FRedisClient;
+
   Result := Client.PUBLISH(Params[0], Params[1]);
 end;
 
-function TFidoRedisClient.PUBLISH(
-  const Key: string;
-  const Value: string;
-  const Timeout: Cardinal): Context<Integer>;
+function TFidoRedisClient.PEXPIRE(const Key: string; const TTL, Timeout: Integer): Context<Boolean>;
+begin
+  Result := Context<TArray<string>>.New([Key, TTL.ToString]).MapAsync<Boolean>(DoPEXPIRE, Timeout);
+end;
+
+function TFidoRedisClient.PUBLISH(const Key: string; const Value: string; const Timeout: Integer): Context<Integer>;
 begin
   Result := Context<TArray<string>>.New([Key, Value]).MapAsync<Integer>(DoPUBLISH, Timeout);
 end;
@@ -178,9 +287,7 @@ begin
     Result := Value;
 end;
 
-function TFidoRedisClient.RPOP(
-  const Key: string;
-  const Timeout: Cardinal): Context<Nullable<string>>;
+function TFidoRedisClient.RPOP(const Key: string; const Timeout: Integer): Context<Nullable<string>>;
 begin
   Result := Context<string>.New(Key).MapAsync<Nullable<string>>(DoRPOP, Timeout);
 end;
@@ -194,19 +301,59 @@ begin
   Result := Client.&SET(Params[0], Params[1]);
 end;
 
-function TFidoRedisClient.&SET(
-  const Key: string;
-  const Value: string;
-  const Timeout: Cardinal): Context<Boolean>;
+function TFidoRedisClient.DoSETNXPX(const Struct: TExpireStruct): Context<Boolean>;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.&SETNX(Struct.Key, Struct.Value, Struct.ExpireMS);
+end;
+
+function TFidoRedisClient.DoSMEMBERS(const Key: string): TArray<string>;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  result := [];
+
+  if not Client.SMEMBERS(Key).HasValue then
+    Exit;
+
+  result := Client.SMEMBERS(Key).ToArray;
+end;
+
+function TFidoRedisClient.&SET(const Key: string; const Value: string; const Timeout: Integer): Context<Boolean>;
 begin
   Result := Context<TArray<string>>.New([Key, Value]).MapAsync<Boolean>(DoSET, Timeout);
 end;
 
+function TFidoRedisClient.SETNXPX(
+    const Key, Value: string;
+    const ExpireMS: Integer = 5000;
+    const Timeout: Integer = MAXINT
+): Context<Boolean>;
+var
+  Struct: TExpireStruct;
+begin
+  Struct.Key := Key;
+  Struct.Value := Value;
+  Struct.ExpireMS := ExpireMS;
+  Result := Context<TExpireStruct>.New(Struct).MapAsync<Boolean>(DoSETNXPX, Timeout);
+end;
+
+function TFidoRedisClient.SMEMBERS(const Key: string; const Timeout: Integer = MAXINT): Context<TArray<string>>;
+begin
+  Result := Context<string>.New(Key).MapAsync<TArray<string>>(DoSMEMBERS, Timeout);
+end;
+
 function TFidoRedisClient.SUBSCRIBE(
-  const Channel: string;
-  aCallback: TProc<string, string>;
-  aContinueOnTimeoutCallback: TRedisTimeoutCallback;
-  aAfterSubscribe: TProc): Context<Void>;
+    const Channel: string;
+    aCallback: TProc<string, string>;
+    aContinueOnTimeoutCallback: TRedisTimeoutCallback;
+    aAfterSubscribe: TProc
+): Context<Void>;
 var
   Struct: TSubscribeStruct;
   Client: IRedisClient;
@@ -218,16 +365,21 @@ begin
   Struct.aContinueOnTimeoutCallback := aContinueOnTimeoutCallback;
   Struct.aAfterSubscribe := aAfterSubscribe;
 
-  Result := Context<TSubscribeStruct>.New(Struct).Map<Void>(Void.MapProc<TSubscribeStruct>(
-    procedure(const Struct: TSubscribeStruct)
-    begin
-      Client.SUBSCRIBE(
-        [Struct.Channel],
-        Struct.aCallback,
-        Struct.aContinueOnTimeoutCallback,
-        Struct.aAfterSubscribe)
-    end));
+  Result :=
+      Context<TSubscribeStruct>
+          .New(Struct)
+          .Map<Void>(
+              Void.MapProc<TSubscribeStruct>(
+                  procedure(const Struct: TSubscribeStruct)
+                  begin
+                    Client.SUBSCRIBE(
+                        [Struct.Channel],
+                        Struct.aCallback,
+                        Struct.aContinueOnTimeoutCallback,
+                        Struct.aAfterSubscribe
+                    )
+                  end
+              ));
 end;
 
 end.
-

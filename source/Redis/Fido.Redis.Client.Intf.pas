@@ -26,24 +26,32 @@ interface
 
 uses
   System.SysUtils,
-
   Spring,
-
-  Redis.Commons,
-
-  Fido.Functional;
+  Fido.Functional,
+  Redis.Commons;
 
 type
   IFidoRedisClient = interface(IInvokable)
     ['{D3638B13-B487-4CC5-B1C5-8B52474F4990}']
 
-    function DEL(const Keys: string; const Timeout: Cardinal = INFINITE): Context<Integer>;
-    function GET(const Key: string; const Timeout: Cardinal = INFINITE): Context<Nullable<string>>;
-    function &SET(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
-    function RPOP(const Key: string; const Timeout: Cardinal = INFINITE): Context<Nullable<string>>;
-    function LPUSH(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Integer>;
-    function PUBLISH(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Integer>;
+    function DEL(const Keys: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function GET(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function &SET(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function SETNXPX(const Key, Value: string; const ExpireMS: Integer = 5000; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function PEXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function RPOP(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function SMEMBERS(const Key: string; const Timeout: Integer = MAXINT): Context<TArray<string>>;
+    function LRANGE(
+        const Key: string;
+        const Start: integer = 0;
+        const Stop: Integer = -1;
+        const Timeout: Integer = MAXINT
+    ): Context<TArray<string>>;
+    function PUBLISH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function SUBSCRIBE(const Channel: string; aCallback: TProc<string, string>; aContinueOnTimeoutCallback: TRedisTimeoutCallback = nil; aAfterSubscribe: TProc = nil): Context<Void>;
+    function BRPOPLPUSH(const Source, Destination: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
   end;
 
   {$M+}
