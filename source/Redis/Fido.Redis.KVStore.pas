@@ -47,16 +47,16 @@ type
     function FormatKey(const Key: string): string;
 
     function Is1(const Value: Integer): Boolean;
-    function DoDelete(const Timeout: Cardinal): Context<string>.MonadFunc<Integer>;
-    function DoGet(const Timeout: Cardinal): Context<string>.FunctorFunc<string>;
+    function DoDelete(const Timeout: Integer): Context<string>.MonadFunc<Integer>;
+    function DoGet(const Timeout: Integer): Context<string>.FunctorFunc<string>;
     function GetValueOrDefault(const Value: Nullable<string>): string;
-    function DoPut(const Timeout: Cardinal): Context<TArray<string>>.MonadFunc<Boolean>;
+    function DoPut(const Timeout: Integer): Context<TArray<string>>.MonadFunc<Boolean>;
   public
     constructor Create(const RedisClient: IFidoRedisClient; const KeyPrefix: string);
 
-    function Get(const Key: string; const Timeout: Cardinal = INFINITE): Context<string>;
-    function Put(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
-    function Delete(const Key: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
+    function Get(const Key: string; const Timeout: Integer = MAXINT): Context<string>;
+    function Put(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function Delete(const Key: string; const Timeout: Integer = MAXINT): Context<Boolean>;
   end;
 
 implementation
@@ -73,7 +73,7 @@ begin
   FRedisClient := Utilities.CheckNotNullAndSet(RedisClient, 'RedisClient');
 end;
 
-function TRedisKVStore.DoDelete(const Timeout: Cardinal): Context<string>.MonadFunc<Integer>;
+function TRedisKVStore.DoDelete(const Timeout: Integer): Context<string>.MonadFunc<Integer>;
 var
   Client: IFidoRedisClient;
 begin
@@ -86,7 +86,7 @@ end;
 
 function TRedisKVStore.Delete(
   const Key: string;
-  const Timeout: Cardinal): Context<Boolean>;
+  const Timeout: Integer): Context<Boolean>;
 begin
   Result := Retry<string>.
     New(Context<string>.
@@ -101,7 +101,7 @@ begin
   Result := Format('%s%s', [FKeyPrefix, Key]);
 end;
 
-function TRedisKVStore.DoGet(const Timeout: Cardinal):
+function TRedisKVStore.DoGet(const Timeout: Integer):
     Context<string>.FunctorFunc<string>;
 var
   Client: IFidoRedisClient;
@@ -120,7 +120,7 @@ end;
 
 function TRedisKVStore.Get(
   const Key: string;
-  const Timeout: Cardinal): Context<string>;
+  const Timeout: Integer): Context<string>;
 begin
   Result := Retry<string>.
     New(Context<string>.
@@ -134,7 +134,7 @@ begin
   Result := Value = 1;
 end;
 
-function TRedisKVStore.DoPut(const Timeout: Cardinal): Context<TArray<string>>.MonadFunc<Boolean>;
+function TRedisKVStore.DoPut(const Timeout: Integer): Context<TArray<string>>.MonadFunc<Boolean>;
 var
   Client: IFidoRedisClient;
 begin
@@ -149,7 +149,7 @@ end;
 function TRedisKVStore.Put(
   const Key: string;
   const Value: string;
-  const Timeout: Cardinal): Context<Boolean>;
+  const Timeout: Integer): Context<Boolean>;
 begin
   Result := Retry<TArray<string>>.
     New([FormatKey(Key), Value]).

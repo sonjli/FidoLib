@@ -31,9 +31,9 @@ type
   IKVStore = interface(IInvokable)
   ['{A52C2B4B-D8A0-483C-9834-2CD2504CBCF1}']
 
-    function Get(const Key: string; const Timeout: Cardinal = INFINITE): Context<string>;
-    function Put(const Key: string; const Value: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
-    function Delete(const Key: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
+    function Get(const Key: string; const Timeout: Integer = MAXINT): Context<string>;
+    function Put(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function Delete(const Key: string; const Timeout: Integer = MAXINT): Context<Boolean>;
   end;
 
 implementation

@@ -207,10 +207,10 @@ var
 begin
   Client := FRedisClient;
 
-  result := [];
-
-  if not Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).HasValue then
-    Exit;
+//  result := [];
+//
+//  if not Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).HasValue then
+//    Exit;
 
   result := Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).ToArray;
 end;
