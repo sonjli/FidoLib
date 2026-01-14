@@ -165,10 +165,10 @@ end;
 {$IFDEF DELPHIX_SYDNEY_UP}
 function TJSONUnQuotedString.EstimatedByteSize: Integer;
 begin
-  if FIsNull then
+  if IsNull then
     Result := 4
   else
-    Result := 6 * System.Length(FValue);
+    Result := 6 * System.Length(Value);
 end;
 
 function TJSONUnQuotedString.ToBytes(
@@ -178,7 +178,7 @@ var
   CurrentChar: Char;
   UnicodeValue: Integer;
 begin
-  if FIsNull then
+  if IsNull then
   begin
     Data[IncrAfter(Offset)] := Ord('n');
     Data[IncrAfter(Offset)] := Ord('u');
@@ -187,7 +187,7 @@ begin
   end
   else
   begin
-    for CurrentChar in FValue do
+    for CurrentChar in Value do
     begin
       case CurrentChar of
         '"':
@@ -261,8 +261,8 @@ procedure TJSONUnQuotedString.ToChars(
     UnicodeValue: Integer;
     Buff: array [0 .. 5] of Char;
   begin
-    P := Pointer(FValue);
-    PEnd := P + Length(FValue);
+    P := Pointer(Value);
+    PEnd := P + Length(Value);
     while P < PEnd do
     begin
       case P^ of
@@ -303,8 +303,8 @@ procedure TJSONUnQuotedString.ToChars(
   var
     P, PEnd: PChar;
   begin
-    P := Pointer(FValue);
-    PEnd := P + Length(FValue);
+    P := Pointer(Value);
+    PEnd := P + Length(Value);
     while P < PEnd do
     begin
       if P^ in ['"', '\', '/', #$8, #$9, #$a, #$c, #$d] then
@@ -318,8 +318,8 @@ procedure TJSONUnQuotedString.ToChars(
   var
     P, PEnd: PChar;
   begin
-    P := Pointer(FValue);
-    PEnd := P + Length(FValue);
+    P := Pointer(Value);
+    PEnd := P + Length(Value);
     while P < PEnd do
     begin
       case P^ of
@@ -341,7 +341,7 @@ procedure TJSONUnQuotedString.ToChars(
 var
   LSpecChars: Boolean;
 begin
-  if FIsNull then
+  if IsNull then
     Builder.Append('null')
   else
   begin
@@ -352,7 +352,7 @@ begin
     if LSpecChars then
       AppendWithSpecialChars(Builder, Options)
     else
-      Builder.Append(FValue);
+      Builder.Append(Value);
   end;
 end;
 {$ENDIF}
