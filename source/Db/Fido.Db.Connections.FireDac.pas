@@ -71,6 +71,10 @@ begin
       Result.LoginPrompt := False;
       Result.UpdateOptions.LockWait := True;
       Result.FetchOptions.Mode := fmAll;
+      Result.FetchOptions.RowsetSize := 300;
+      Result.FetchOptions.AutoClose := True;
+      Result.TxOptions.AutoCommit := True;
+      Result.ResourceOptions.AutoReconnect := True;
       Result.ResourceOptions.SilentMode := True;
       with Result.FormatOptions.MapRules.Add do
       begin
