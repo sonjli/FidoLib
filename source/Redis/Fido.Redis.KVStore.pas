@@ -40,7 +40,7 @@ uses
 
 type
   TRedisKVStore = class(TInterfacedObject, IKVStore)
-  private var
+  private
     FKeyPrefix: string;
     FRedisClient: IFidoRedisClient;
   private

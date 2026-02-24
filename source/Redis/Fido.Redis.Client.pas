@@ -73,6 +73,7 @@ type
     function DoLRANGE(const Key: TArray<TValue>): TArray<string>;
     function DoSETNXPX(const Struct: TExpireStruct): Context<Boolean>;
     function DoPEXPIRE(const Params: TArray<string>): Boolean;
+    function DoEXPIRE(const Params: TArray<string>): Boolean;
   public
     constructor Create(const RedisClient: IRedisClient);
 
@@ -85,6 +86,7 @@ type
         const Timeout: Integer = MAXINT
     ): Context<Boolean>;
     function PEXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function EXPIRE(const Key, Value: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
     function RPOP(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
@@ -135,6 +137,15 @@ begin
   Client := FRedisClient;
 
   Result := Client.DEL([Key]);
+end;
+
+function TFidoRedisClient.DoEXPIRE(const Params: TArray<string>): Boolean;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.&SET(Params[0], Params[1], Params[2].ToInteger);
 end;
 
 function TFidoRedisClient.DEL(const Key: string; const Timeout: Integer): Context<Integer>;
@@ -204,13 +215,16 @@ end;
 function TFidoRedisClient.DoLRANGE(const Key: TArray<TValue>): TArray<string>;
 var
   Client: IRedisClient;
+  ArrayResult: TRedisArray;
 begin
+  result := [];
+
   Client := FRedisClient;
 
-//  result := [];
-//
-//  if not Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).HasValue then
-//    Exit;
+  ArrayResult := Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger);
+
+  if not ArrayResult.HasValue then
+    Exit;
 
   result := Client.LRANGE(Key[0].AsString, Key[1].AsInteger, Key[2].AsInteger).ToArray;
 end;
@@ -322,6 +336,11 @@ begin
     Exit;
 
   result := Client.SMEMBERS(Key).ToArray;
+end;
+
+function TFidoRedisClient.EXPIRE(const Key, Value: string; const TTL, Timeout: Integer): Context<Boolean>;
+begin
+  Result := Context<TArray<string>>.New([Key, Value, TTL.ToString]).MapAsync<Boolean>(DoEXPIRE, Timeout);
 end;
 
 function TFidoRedisClient.&SET(const Key: string; const Value: string; const Timeout: Integer): Context<Boolean>;
