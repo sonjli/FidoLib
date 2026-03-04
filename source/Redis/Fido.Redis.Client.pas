@@ -74,6 +74,8 @@ type
     function DoSETNXPX(const Struct: TExpireStruct): Context<Boolean>;
     function DoPEXPIRE(const Params: TArray<string>): Boolean;
     function DoEXPIRE(const Params: TArray<string>): Boolean;
+    function DoHGET(const Params: TArray<string>): TRedisNullable<string>;
+    function DoHSET(const Params: TArray<string>): Integer;
   public
     constructor Create(const RedisClient: IRedisClient);
 
@@ -105,6 +107,8 @@ type
         aAfterSubscribe: TProc = nil
     ): Context<Void>;
     function BRPOPLPUSH(const Source, Destination: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function HGET(const Key, Field: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function HSET(const Key, Field: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
   end;
 
 implementation
@@ -161,6 +165,22 @@ begin
   Result := function: Boolean begin Result := LValue.HasValue; end;
 end;
 
+function TFidoRedisClient.HGET(const Key, Field: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+var
+  NullValue: Nullable<string>;
+begin
+  Result :=
+      &If<TRedisNullable<string>>
+          .New(Context<TArray<string>>.New([Key, Field]).MapAsync<TRedisNullable<string>>(DoHGET, Timeout))
+          .Map(HasRedisNullableValue)
+          .&Then<Nullable<string>>(ConvertRedisNullable, NullValue);
+end;
+
+function TFidoRedisClient.HSET(const Key, Field: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+begin
+  Result := Context<TArray<string>>.New([Key, Field, Value]).MapAsync<Integer>(DoHSET, Timeout);
+end;
+
 function TFidoRedisClient.BRPOPLPUSH(
     const Source, Destination: string;
     const Timeout: Integer = MAXINT
@@ -190,6 +210,24 @@ begin
   Client := FRedisClient;
 
   Result := Client.GET(Key);
+end;
+
+function TFidoRedisClient.DoHGET(const Params: TArray<string>): TRedisNullable<string>;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.HGET(Params[0], Params[1]);
+end;
+
+function TFidoRedisClient.DoHSET(const Params: TArray<string>): Integer;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.HSET(Params[0], Params[1], Params[2]);
 end;
 
 function TFidoRedisClient.GET(const Key: string; const Timeout: Integer): Context<Nullable<string>>;

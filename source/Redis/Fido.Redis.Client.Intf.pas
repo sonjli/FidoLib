@@ -53,6 +53,8 @@ type
     function PUBLISH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function SUBSCRIBE(const Channel: string; aCallback: TProc<string, string>; aContinueOnTimeoutCallback: TRedisTimeoutCallback = nil; aAfterSubscribe: TProc = nil): Context<Void>;
     function BRPOPLPUSH(const Source, Destination: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function HGET(const Key, Field: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
+    function HSET(const Key, Field: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
   end;
 
   {$M+}
