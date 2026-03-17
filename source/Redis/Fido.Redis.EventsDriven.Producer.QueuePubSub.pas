@@ -56,7 +56,7 @@ type
   public
     constructor Create(const RedisClient: IFidoRedisClient);
 
-    function Push(const Key: string; const Payload: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
+    function Push(const Key: string; const Payload: string; const Timeout: Integer = MAXINT): Context<Boolean>;
   end;
 
 implementation
@@ -78,7 +78,7 @@ end;
 function TRedisQueuePubSubEventsDrivenProducer.Push(
   const Key: string;
   const Payload: string;
-  const Timeout: Cardinal): Context<Boolean>;
+  const Timeout: Integer): Context<Boolean>;
 var
   EventId: string;
   Client: IFidoRedisClient;

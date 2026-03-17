@@ -50,12 +50,12 @@ type
   TRedisPubSubEventsDrivenProducer = class(TInterfacedObject, IEventsDrivenProducer<string>)
   private var
     FRedisClient: IFidoRedisClient;
-    function DoPublish(const Timeout: Cardinal): Context<TArray<string>>.MonadFunc<Integer>;
+    function DoPublish(const Timeout: Integer): Context<TArray<string>>.MonadFunc<Integer>;
     function MoreThan0(const Value: Integer): Boolean;
   public
     constructor Create(const RedisClient: IFidoRedisClient);
 
-    function Push(const Key: string; const Payload: string; const Timeout: Cardinal = INFINITE): Context<Boolean>;
+    function Push(const Key: string; const Payload: string; const Timeout: Integer = MAXINT): Context<Boolean>;
   end;
 
 implementation
@@ -69,7 +69,7 @@ begin
   FRedisClient := Utilities.CheckNotNullAndSet(RedisClient, 'RedisClient');
 end;
 
-function TRedisPubSubEventsDrivenProducer.DoPublish(const Timeout: Cardinal): Context<TArray<string>>.MonadFunc<Integer>;
+function TRedisPubSubEventsDrivenProducer.DoPublish(const Timeout: Integer): Context<TArray<string>>.MonadFunc<Integer>;
 var
   Client: IFidoRedisClient;
 begin
@@ -89,7 +89,7 @@ end;
 function TRedisPubSubEventsDrivenProducer.Push(
   const Key: string;
   const Payload: string;
-  const Timeout: Cardinal): Context<Boolean>;
+  const Timeout: Integer): Context<Boolean>;
 begin
   Result := Retry<TArray<string>>.New([Key, TNetEncoding.Base64.Encode(Payload)]).Map<Integer>(DoPublish(Timeout), Retries.GetRetriesOnExceptionFunc()).Map<Boolean>(MoreThan0);
 end;

@@ -49,7 +49,7 @@ type
   public
     constructor Create;
 
-    function Push(const Key: string; const Payload: PayloadType; const Timeout: Cardinal = INFINITE): Context<Boolean>;
+    function Push(const Key: string; const Payload: PayloadType; const Timeout: Integer = MAXINT): Context<Boolean>;
 
     procedure Subscribe(const Consumer: IPubSubEventsDrivenConsumer<PayloadType>; const Key: string; const OnNotify: TProc<string, PayloadType>);
     procedure Unsubscribe(const Consumer: IPubSubEventsDrivenConsumer<PayloadType>; const Key: string);
@@ -81,7 +81,7 @@ end;
 function TAbstractMemoryPubSubEventsDrivenBroker<PayloadType>.Push(
   const Key: string;
   const Payload: PayloadType;
-  const Timeout: Cardinal): Context<Boolean>;
+  const Timeout: Integer): Context<Boolean>;
 var
   Events: IDictionary<IPubSubEventsDrivenConsumer<PayloadType>, TProc<string, PayloadType>>;
   EventsArray: TArray<TProc<string, PayloadType>>;
