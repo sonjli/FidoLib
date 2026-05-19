@@ -57,6 +57,11 @@ type
         Value: string;
         ExpireMS: Integer;
       end;
+      TEvalStruct = record
+        Script: string;
+        Keys: TArray<string>;
+        Values: TArray<string>;
+      end;
   private
     FRedisClient: IRedisClient;
     function HasRedisNullableValue(const Value: TRedisNullable<string>): Context<Boolean>;
@@ -76,6 +81,9 @@ type
     function DoEXPIRE(const Params: TArray<string>): Boolean;
     function DoHGET(const Params: TArray<string>): TRedisNullable<string>;
     function DoHSET(const Params: TArray<string>): Integer;
+    function DoEVAL(const EvalStruct: TEvalStruct): Integer;
+    function DoSADD(const Params: TArray<string>): Integer;
+    function DoSREM(const Params: TArray<string>): Integer;
   public
     constructor Create(const RedisClient: IRedisClient);
 
@@ -93,6 +101,8 @@ type
     function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function SMEMBERS(const Key: string; const Timeout: Integer = MAXINT): Context<TArray<string>>;
+    function SADD(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function SREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LRANGE(
         const Key: string;
         const Start: integer = 0;
@@ -109,6 +119,11 @@ type
     function BRPOPLPUSH(const Source, Destination: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function HGET(const Key, Field: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function HSET(const Key, Field: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function EVAL(
+        const aScript: string;
+        aKeys, aValues: TArray<string>;
+        const Timeout: Integer = MAXINT
+    ): Context<Integer>;
   end;
 
 implementation
@@ -141,6 +156,15 @@ begin
   Client := FRedisClient;
 
   Result := Client.DEL([Key]);
+end;
+
+function TFidoRedisClient.DoEVAL(const EvalStruct: TEvalStruct): Integer;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  result := Client.EVAL(EvalStruct.Script, EvalStruct.Keys, EvalStruct.Values);
 end;
 
 function TFidoRedisClient.DoEXPIRE(const Params: TArray<string>): Boolean;
@@ -176,7 +200,11 @@ begin
           .&Then<Nullable<string>>(ConvertRedisNullable, NullValue);
 end;
 
-function TFidoRedisClient.HSET(const Key, Field: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+function TFidoRedisClient.HSET(
+    const Key, Field: string;
+    const Value: string;
+    const Timeout: Integer = MAXINT
+): Context<Integer>;
 begin
   Result := Context<TArray<string>>.New([Key, Field, Value]).MapAsync<Integer>(DoHSET, Timeout);
 end;
@@ -344,6 +372,15 @@ begin
   Result := Context<string>.New(Key).MapAsync<Nullable<string>>(DoRPOP, Timeout);
 end;
 
+function TFidoRedisClient.DoSADD(const Params: TArray<string>): Integer;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.SADD(Params[0], Params[1]);
+end;
+
 function TFidoRedisClient.DoSET(const Params: TArray<string>): Boolean;
 var
   Client: IRedisClient;
@@ -376,9 +413,37 @@ begin
   result := Client.SMEMBERS(Key).ToArray;
 end;
 
+function TFidoRedisClient.DoSREM(const Params: TArray<string>): Integer;
+var
+  Client: IRedisClient;
+begin
+  Client := FRedisClient;
+
+  Result := Client.SREM(Params[0], Params[1]);
+end;
+
+function TFidoRedisClient.EVAL(
+    const aScript: string;
+    aKeys, aValues: TArray<string>;
+    const Timeout: Integer = MAXINT
+): Context<Integer>;
+var
+  Struct: TEvalStruct;
+begin
+  Struct.Script := aScript;
+  Struct.Keys := aKeys;
+  Struct.Values := aValues;
+  Result := Context<TEvalStruct>.New(Struct).MapAsync<Integer>(DoEVAL, Timeout);
+end;
+
 function TFidoRedisClient.EXPIRE(const Key, Value: string; const TTL, Timeout: Integer): Context<Boolean>;
 begin
   Result := Context<TArray<string>>.New([Key, Value, TTL.ToString]).MapAsync<Boolean>(DoEXPIRE, Timeout);
+end;
+
+function TFidoRedisClient.SADD(const Key, Item: string; const Timeout: Integer): Context<Integer>;
+begin
+  Result := Context<TArray<string>>.New([Key, Item]).MapAsync<Integer>(DoSADD, Timeout);
 end;
 
 function TFidoRedisClient.&SET(const Key: string; const Value: string; const Timeout: Integer): Context<Boolean>;
@@ -403,6 +468,11 @@ end;
 function TFidoRedisClient.SMEMBERS(const Key: string; const Timeout: Integer = MAXINT): Context<TArray<string>>;
 begin
   Result := Context<string>.New(Key).MapAsync<TArray<string>>(DoSMEMBERS, Timeout);
+end;
+
+function TFidoRedisClient.SREM(const Key, Item: string; const Timeout: Integer): Context<Integer>;
+begin
+  Result := Context<TArray<string>>.New([Key, Item]).MapAsync<Integer>(DoSREM, Timeout);
 end;
 
 function TFidoRedisClient.SUBSCRIBE(

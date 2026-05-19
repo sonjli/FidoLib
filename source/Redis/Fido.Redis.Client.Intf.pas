@@ -37,13 +37,19 @@ type
     function DEL(const Keys: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function GET(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function &SET(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Boolean>;
-    function SETNXPX(const Key, Value: string; const ExpireMS: Integer = 5000; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function SETNXPX(
+        const Key, Value: string;
+        const ExpireMS: Integer = 5000;
+        const Timeout: Integer = MAXINT
+    ): Context<Boolean>;
     function PEXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
     function EXPIRE(const Key, Value: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
     function RPOP(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function SMEMBERS(const Key: string; const Timeout: Integer = MAXINT): Context<TArray<string>>;
+    function SADD(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
+    function SREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LRANGE(
         const Key: string;
         const Start: integer = 0;
@@ -51,15 +57,26 @@ type
         const Timeout: Integer = MAXINT
     ): Context<TArray<string>>;
     function PUBLISH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
-    function SUBSCRIBE(const Channel: string; aCallback: TProc<string, string>; aContinueOnTimeoutCallback: TRedisTimeoutCallback = nil; aAfterSubscribe: TProc = nil): Context<Void>;
+    function SUBSCRIBE(
+        const Channel: string;
+        aCallback: TProc<string, string>;
+        aContinueOnTimeoutCallback: TRedisTimeoutCallback = nil;
+        aAfterSubscribe: TProc = nil
+    ): Context<Void>;
     function BRPOPLPUSH(const Source, Destination: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function HGET(const Key, Field: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function HSET(const Key, Field: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
+
+    function EVAL(
+        const aScript: string;
+        aKeys, aValues: TArray<string>;
+        const Timeout: Integer = MAXINT
+    ): Context<Integer>;
   end;
 
   {$M+}
   IFidoRedisClientFactory = reference to function: IFidoRedisClient;
-  {$M-}
+{$M-}
 
 implementation
 
