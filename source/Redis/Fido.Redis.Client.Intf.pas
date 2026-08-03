@@ -43,7 +43,8 @@ type
         const Timeout: Integer = MAXINT
     ): Context<Boolean>;
     function PEXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
-    function EXPIRE(const Key, Value: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function EXPIRE(const Key, Value: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>; overload;
+    function EXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>; overload;
     function RPOP(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;

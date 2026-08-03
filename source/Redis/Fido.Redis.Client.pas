@@ -96,7 +96,8 @@ type
         const Timeout: Integer = MAXINT
     ): Context<Boolean>;
     function PEXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
-    function EXPIRE(const Key, Value: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>;
+    function EXPIRE(const Key, Value: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>; overload;
+    function EXPIRE(const Key: string; const TTL: Integer; const Timeout: Integer = MAXINT): Context<Boolean>; overload;
     function RPOP(const Key: string; const Timeout: Integer = MAXINT): Context<Nullable<string>>;
     function LPUSH(const Key: string; const Value: string; const Timeout: Integer = MAXINT): Context<Integer>;
     function LREM(const Key, Item: string; const Timeout: Integer = MAXINT): Context<Integer>;
@@ -173,7 +174,10 @@ var
 begin
   Client := FRedisClient;
 
-  Result := Client.&SET(Params[0], Params[1], Params[2].ToInteger);
+  if Length(Params) = 3 then
+    Result := Client.&SET(Params[0], Params[1], Params[2].ToInteger)
+  else
+    Result := Client.EXPIRE(Params[0], Params[1].ToInteger);
 end;
 
 function TFidoRedisClient.DEL(const Key: string; const Timeout: Integer): Context<Integer>;
@@ -434,6 +438,11 @@ begin
   Struct.Keys := aKeys;
   Struct.Values := aValues;
   Result := Context<TEvalStruct>.New(Struct).MapAsync<Integer>(DoEVAL, Timeout);
+end;
+
+function TFidoRedisClient.EXPIRE(const Key: string; const TTL, Timeout: Integer): Context<Boolean>;
+begin
+  Result := Context<TArray<string>>.New([Key, TTL.ToString]).MapAsync<Boolean>(DoEXPIRE, Timeout);
 end;
 
 function TFidoRedisClient.EXPIRE(const Key, Value: string; const TTL, Timeout: Integer): Context<Boolean>;

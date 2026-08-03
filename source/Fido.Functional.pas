@@ -143,12 +143,20 @@ var
   LSelf: Context<T>;
 begin
   LSelf := Self;
-  Result := Context<TOut>.New(function: TOut
+  Result := function: TOut
     begin
       Result := Func(LSelf);
-    end,
-    Timeout,
-    Paused);
+    end;
+//var
+//  LSelf: Context<T>;
+//begin
+//  LSelf := Self;
+//  Result := Context<TOut>.New(function: TOut
+//    begin
+//      Result := Func(LSelf);
+//    end,
+//    Timeout,
+//    Paused);
 end;
 
 function Context<T>.MapAsync<TOut>(
@@ -161,10 +169,18 @@ begin
   LSelf := Self;
   Result := Context<TOut>.New(function: TOut
     begin
-      Result := Func(LSelf);
-    end,
-    Timeout,
-    Paused);
+      Result := Func(LSelf)
+    end);
+//var
+//  LSelf: Context<T>;
+//begin
+//  LSelf := Self;
+//  Result := Context<TOut>.New(function: TOut
+//    begin
+//      Result := Func(LSelf);
+//    end,
+//    Timeout,
+//    Paused);
 end;
 
 class operator Context<T>.Implicit(const Func: Func<T>): Context<T>;
