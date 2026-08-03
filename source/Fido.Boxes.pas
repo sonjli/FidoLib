@@ -41,6 +41,7 @@ type
   IBox<T> = interface(IReadonlyBox<T>)
     ['{35CA4A5D-2E2F-4BA1-9930-7F71459D76D5}']
 
+    function GetValue(Reader: TBoxUpdater<T>): T;
     procedure UpdateValue(const Value: T); overload;
     procedure UpdateValue(const Updater: TBoxUpdaterVar<T>); overload;
   end;
@@ -53,6 +54,7 @@ type
     constructor Create(const Value: T); overload;
 
     function Value: T;
+    function GetValue(Reader: TBoxUpdater<T>): T;
 
     procedure UpdateValue(const Value: T); overload;
     procedure UpdateValue(const Updater: TBoxUpdaterVar<T>); overload;
@@ -117,6 +119,17 @@ begin
     Updater(FValue);
   finally
     FLock.EndWrite;
+  end;
+end;
+
+function TBox<T>.GetValue(Reader: TBoxUpdater<T>): T;
+begin
+  FLock.BeginRead;
+  try
+    Reader(FValue);
+    result := FValue;
+  finally
+    FLock.EndRead;
   end;
 end;
 
