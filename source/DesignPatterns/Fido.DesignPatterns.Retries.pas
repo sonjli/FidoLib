@@ -30,7 +30,8 @@ uses
   Spring,
   Spring.Collections,
 
-  Fido.Api.Client.Exception;
+  Fido.Api.Client.Exception,
+  Fido.OS.Utilities;
 
 type
   Retries = record
@@ -90,7 +91,8 @@ begin
         if FailCount >= MaxRetries then
           raise
         else
-          Sleep(RetryIntervalInMSec);
+          //Sleep(RetryIntervalInMSec);
+          OSutilities.System.Delay(RetryIntervalInMSec);
       end;
     end;
   end;
@@ -132,7 +134,8 @@ begin
         if FailCount >= MaxRetries then
           raise
         else
-          Sleep(RetryIntervalInMSec);
+          //Sleep(RetryIntervalInMSec);
+          OSutilities.System.Delay(RetryIntervalInMSec);
       end;
     end;
   end;
