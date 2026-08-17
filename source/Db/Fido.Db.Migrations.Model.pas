@@ -92,7 +92,8 @@ begin
     begin
       Script := Shared.Make(TStringList.Create);
       Script.LoadFromFile(Migration);
-      FScriptRunner.Execute(Script);
+      FDatabaseMigrationsRepository.ExecSql(Script.Text);
+//      FScriptRunner.Execute(Script);
       FDatabaseMigrationsRepository.SaveDBMigration(ExtractFileName(Migration));
     end);
 end;
